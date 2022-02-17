@@ -1,13 +1,25 @@
-# Template to create agents.
 
-## How to :
-* Create a repository from base_agent template.
-* git remote add template https://github.com/Ostorlab/template_agent.git
+# Nuclei agent  
+An implementation of [Osorlab Agent]((https://pypi.org/project/ostorlab/) for the [Nuclei scanner](https://github.com/projectdiscovery/nuclei) by ProjectDiscovery.  
 
+## Usage
 
-**In case new changes are made to the template**
+Refer to Ostorlab documentation.
 
+### Build directly from the repository
 
-* git fetch template
-* git checkout [branch-to-merge-to]
-* git merge template/main
+ 1. To build the nuclei agent you need to have [ostorlab](https://pypi.org/project/ostorlab/) installed in your machine.  if you have already installed ostorlab you can skip this step.
+ 
+`pip3 install ostorlab` 
+ 
+ 3. clone this repository.
+ 
+`git clone https://github.com/Ostorlab/agent_nuclei && cd agent_nuclei `
+   
+ 4. build the agent image using ostorlab cli.
+
+ `ostortlab agent build --file=ostorlab.yaml`
+
+ ### Install directly from ostorlab agent store.
+ 
+ **soon.**

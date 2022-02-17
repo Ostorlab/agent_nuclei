@@ -6,6 +6,13 @@ COPY requirement.txt /requirement.txt
 RUN pip install --prefix=/install -r /requirement.txt
 FROM base
 COPY --from=builder /install /usr/local
-COPY src /app
+RUN mkdir -p /app/agent
+COPY agent /app/agent
+COPY ostorlab.yaml /app/agent/ostorlab.yaml
+RUN mkdir /nuclei
+WORKDIR /nuclei
+ARG NUCLEI_VERSION=2.6.0
+RUN wget https://github.com/projectdiscovery/nuclei/releases/download/v${NUCLEI_VERSION}/nuclei_${NUCLEI_VERSION}_linux_amd64.zip && \
+  unzip nuclei_${NUCLEI_VERSION}_linux_amd64.zip
 WORKDIR /app
-CMD ["python3", "agent.py"]
+CMD ["python3", "/app/agent/agent.py"]
