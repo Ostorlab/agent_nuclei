@@ -44,7 +44,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
         """
         logger.info('Received a new message, processing...')
         command = ['/nuclei/nuclei', '-u', message.data.get('host'), '-json', '-irr', '-silent', '-o', OUTPUT_PATH]
-        subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
         self._parse_output()
 
     def _parse_output(self):
