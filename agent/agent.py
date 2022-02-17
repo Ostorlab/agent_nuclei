@@ -43,12 +43,12 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
         """
         logger.info('Received a new message, processing...')
         command = ['/nuclei/nuclei', '-u', message.data['host'], '-json', '-irr', '-silent', '-o', OUTPUT_PATH]
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        process.communicate()
-        self._parse_output()
+        with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
+            process.communicate()
+            self._parse_output()
 
     def _parse_output(self):
-        with open(OUTPUT_PATH, 'r') as f:
+        with open(OUTPUT_PATH, 'r', encoding='UTF-8') as f:
             lines = f.readlines()
             for line in lines:
                 nuclei_data_dict = json.loads(line)
