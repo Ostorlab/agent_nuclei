@@ -2,6 +2,7 @@
 import subprocess
 import json
 import logging
+from typing import Dict
 
 from ostorlab.agent import agent
 from ostorlab.agent import message as m
@@ -42,18 +43,19 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
 
         """
         logger.info('Received a new message, processing...')
-        command = ['/nuclei/nuclei', '-u', message.data['host'], '-json', '-irr', '-silent', '-o', OUTPUT_PATH]
-        with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
-            process.communicate()
-            self._parse_output()
+        command = ['/nuclei/nuclei', '-u', message.data.get('host'), '-json', '-irr', '-silent', '-o', OUTPUT_PATH]
+        subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self._parse_output()
 
     def _parse_output(self):
+        """Parse Nuclei Json output and emit the findings as vulnerabilities"""
         with open(OUTPUT_PATH, 'r', encoding='UTF-8') as f:
             lines = f.readlines()
             for line in lines:
                 nuclei_data_dict = json.loads(line)
                 template_info = nuclei_data_dict['info']
                 severity = template_info.get('severity')
+
                 self.report_vulnerability(
                     entry=kb.Entry(
                         title=template_info.get('name'),
@@ -61,17 +63,24 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                         short_description=template_info.get('description', ''),
                         description=template_info.get('description', ''),
                         recommendation=template_info.get('recommendation', ''),
-                        references={},
+                        references=self._get_references(template_info),
                         security_issue=True,
                         privacy_issue=False,
-                        has_public_exploit=True,
-                        targeted_by_malware=True,
-                        targeted_by_ransomware=True,
-                        targeted_by_nation_state=True
+                        has_public_exploit=False,
+                        targeted_by_malware=False,
+                        targeted_by_ransomware=False,
+                        targeted_by_nation_state=False
                     ),
                     technical_detail=f'```json\n{line}\n```',
                     risk_rating=NUCLEI_RISK_MAPPING[severity])
-            logger.info('Scan finished Number of finding %s', len(lines))
+            logger.info('Scan finished. %d findings reported', len(lines))
+
+    def _get_references(self, template_info: Dict[str, str]) -> Dict[str, str]:
+        """Generate dict references from nuclei references template"""
+        if template_info.get('reference'):
+            return {str(template_info.get('reference')): str(template_info.get('reference'))}
+        else:
+            return {}
 
 
 if __name__ == '__main__':

@@ -6,8 +6,7 @@ from ostorlab.agent import message
 
 @pytest.fixture
 def scan_message():
-    """Creates a dummy message of type v3.asset.file to be used by the agent for testing purposes.
-    The files used is the EICAR Anti-Virus Test File.
+    """Creates a dummy message of type v3.asset.ip to be used by the agent for testing purposes.
     """
     selector = 'v3.asset.ip'
     msg_data = {

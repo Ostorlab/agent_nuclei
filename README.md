@@ -10,7 +10,7 @@ Refer to Ostorlab documentation.
 
  1. To build the nuclei agent you need to have [ostorlab](https://pypi.org/project/ostorlab/) installed in your machine.  if you have already installed ostorlab you can skip this step.
  
-`pip3 install ostorlab` 
+`pip3 install -U ostorlab` 
  
  3. clone this repository.
  
@@ -22,4 +22,6 @@ Refer to Ostorlab documentation.
 
  ### Install directly from ostorlab agent store.
  
- **soon.**
+Run the command:
+
+`ostorlab agent install agent/ostorlab/nuclei`
