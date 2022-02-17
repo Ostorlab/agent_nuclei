@@ -1,9 +1,8 @@
 """Unittests for nuclei class."""
 from unittest import mock
-import subprocess
 
-from ostorlab.agent.kb import kb
 from agent import agent
+from ostorlab.agent.kb import kb
 from ostorlab.agent import definitions as agent_definitions
 from ostorlab.runtimes import definitions as runtime_definitions
 from ostorlab.utils import defintions as utils_definitions
