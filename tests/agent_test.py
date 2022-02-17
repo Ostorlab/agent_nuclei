@@ -8,7 +8,7 @@ from ostorlab.runtimes import definitions as runtime_definitions
 from ostorlab.utils import defintions as utils_definitions
 
 
-@mock.patch('agent.agent.OUTPUT_PATH', './result_nuclei.json')
+@mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei.json')
 def testAgentNuclei_whenBinaryAvailable_RunScan(scan_message, mocker):
     """Tests running the agent and parsing the json output."""
     definition = agent_definitions.AgentDefinition(
@@ -22,10 +22,10 @@ def testAgentNuclei_whenBinaryAvailable_RunScan(scan_message, mocker):
             utils_definitions.Arg(name='reporting_engine_base_url', type='str', value=b'https://toto.ostorlab.co/test'),
             utils_definitions.Arg(name='reporting_engine_token', type='str', value=b'123456')],
         healthcheck_port=5301)
-    mocker.patch('subprocess.Popen',
-                 return_value=subprocess.Popen('ls'))
-    mocker.patch('subprocess.Popen.communicate', return_value=None)
-    mock_report_vulnerability = mocker.patch('agent.agent.AgentNuclei.report_vulnerability', return_value=None)
-    test_agent = agent.AgentNuclei(definition, settings)
-    test_agent.process(scan_message)
-    assert mock_report_vulnerability.called
+    with subprocess.Popen('ls') as process:
+        mocker.patch('subprocess.Popen',return_value=process)
+        mocker.patch('subprocess.Popen.communicate', return_value=None)
+        mock_report_vulnerability = mocker.patch('agent.agent.AgentNuclei.report_vulnerability', return_value=None)
+        test_agent = agent.AgentNuclei(definition, settings)
+        test_agent.process(scan_message)
+        assert mock_report_vulnerability.called
