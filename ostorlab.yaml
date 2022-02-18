@@ -1,6 +1,6 @@
 kind: Agent
 name: nuclei
-version: 0.0.1
+version: 0.0.2
 description: "Nuclei is a Fast and customisable vulnerability scanner based on simple YAML based DSL."
 in_selectors:
   - v3.asset.ip
