@@ -29,7 +29,7 @@ def testAgentNuclei_whenBinaryAvailable_RunScan(scan_message, mocker):
     test_agent = agent.AgentNuclei(definition, settings)
     test_agent.process(scan_message)
     mock_report_vulnerability.assert_called_with(entry=kb.Entry(
-        title='PTR Fingerprint', risk_rating=agent_report_vulnerability_mixin.RiskRating.INFO,
+        title='PTR Fingerprint', risk_rating=agent_report_vulnerability_mixin.RiskRating.INFO.value,
         short_description='', description='', recommendation='', references={},
         security_issue=True, privacy_issue=False, has_public_exploit=False, targeted_by_malware=False,
         targeted_by_ransomware=False, targeted_by_nation_state=False, cvss_v3_vector=''),
