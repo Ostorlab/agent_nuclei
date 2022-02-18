@@ -1,6 +1,6 @@
 
 # Nuclei agent  
-An implementation of [Osorlab Agent]((https://pypi.org/project/ostorlab/) for the [Nuclei scanner](https://github.com/projectdiscovery/nuclei) by ProjectDiscovery.  
+An implementation of [Ostorlab Agent]((https://pypi.org/project/ostorlab/) for the [Nuclei scanner](https://github.com/projectdiscovery/nuclei) by ProjectDiscovery.  
 
 ## Usage
 
