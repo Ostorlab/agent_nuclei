@@ -21,11 +21,11 @@ logger = logging.getLogger(__name__)
 OUTPUT_PATH = '/tmp/result_nuclei.json'
 
 NUCLEI_RISK_MAPPING = {
-    'critical': 'HIGH',
-    'high': 'HIGH',
-    'medium': 'MEDIUM',
-    'low': 'LOW',
-    'info': 'INFO',
+    'critical': agent_report_vulnerability_mixin.RiskRating.HIGH,
+    'high': agent_report_vulnerability_mixin.RiskRating.HIGH,
+    'medium': agent_report_vulnerability_mixin.RiskRating.MEDIUM,
+    'low': agent_report_vulnerability_mixin.RiskRating.LOW,
+    'info': agent_report_vulnerability_mixin.RiskRating.INFO,
 }
 
 
@@ -59,7 +59,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 self.report_vulnerability(
                     entry=kb.Entry(
                         title=template_info.get('name'),
-                        risk_rating=NUCLEI_RISK_MAPPING[severity],
+                        risk_rating=NUCLEI_RISK_MAPPING[severity].value,
                         short_description=template_info.get('description', ''),
                         description=template_info.get('description', ''),
                         recommendation=template_info.get('recommendation', ''),

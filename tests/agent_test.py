@@ -1,11 +1,13 @@
 """Unittests for nuclei class."""
 from unittest import mock
 
-from agent import agent
-from ostorlab.agent.kb import kb
 from ostorlab.agent import definitions as agent_definitions
+from ostorlab.agent.kb import kb
+from ostorlab.agent.mixins import agent_report_vulnerability_mixin
 from ostorlab.runtimes import definitions as runtime_definitions
 from ostorlab.utils import defintions as utils_definitions
+
+from agent import agent
 
 
 @mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei.json')
@@ -27,7 +29,7 @@ def testAgentNuclei_whenBinaryAvailable_RunScan(scan_message, mocker):
     test_agent = agent.AgentNuclei(definition, settings)
     test_agent.process(scan_message)
     mock_report_vulnerability.assert_called_with(entry=kb.Entry(
-        title='PTR Fingerprint', risk_rating='INFO',
+        title='PTR Fingerprint', risk_rating=agent_report_vulnerability_mixin.RiskRating.INFO.value,
         short_description='', description='', recommendation='', references={},
         security_issue=True, privacy_issue=False, has_public_exploit=False, targeted_by_malware=False,
         targeted_by_ransomware=False, targeted_by_nation_state=False, cvss_v3_vector=''),
@@ -46,4 +48,4 @@ def testAgentNuclei_whenBinaryAvailable_RunScan(scan_message, mocker):
                          '.megawebservers.com.\\n\\n;; ADDITIONAL SECTION:\\n\\n;; OPT PSEUDOSECTION:\\n; EDNS: '
                          'version 0; flags: ; udp: 1232\\n","timestamp":"2022-02-17T13:54:42.424634426+01:00",'
                          '"matcher-status":true}\n\n```',
-        risk_rating='INFO')
+        risk_rating=agent_report_vulnerability_mixin.RiskRating.INFO)
