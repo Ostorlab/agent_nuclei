@@ -70,7 +70,8 @@ description: |
 license: Apache
 source: https://github.com/Ostorlab/agent_nuclei
 in_selectors:
-  - v3.asset.ip
+  - v3.asset.ip.v4
+  - v3.asset.ip.v6
 out_selectors:
   - v3.report.vulnerability
 docker_file_path : Dockerfile
