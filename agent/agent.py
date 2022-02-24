@@ -14,7 +14,8 @@ from rich import logging as rich_logging
 logging.basicConfig(
     format='%(message)s',
     datefmt='[%X]',
-    handlers=[rich_logging.RichHandler(rich_tracebacks=True)]
+    handlers=[rich_logging.RichHandler(rich_tracebacks=True)],
+    level='INFO'
 )
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
         Returns:
 
         """
-        logger.info('Received a new message, processing...')
+        logger.info('processing message of selector : %s', message.selector)
         command = ['/nuclei/nuclei', '-u', message.data.get('host'), '-json', '-irr', '-silent', '-o', OUTPUT_PATH]
         subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
         self._parse_output()
@@ -73,7 +74,6 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                     ),
                     technical_detail=f'```json\n{line}\n```',
                     risk_rating=NUCLEI_RISK_MAPPING[severity])
-            logger.info('Scan finished. %d findings reported', len(lines))
 
     def _get_references(self, template_info: Dict[str, str]) -> Dict[str, str]:
         """Generate dict references from nuclei references template"""
