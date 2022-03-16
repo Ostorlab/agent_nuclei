@@ -1,2 +1,2 @@
-ostorlab
+ostorlab[agent]
 rich
