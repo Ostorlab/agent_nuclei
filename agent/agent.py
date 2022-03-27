@@ -10,7 +10,6 @@ from ostorlab.agent.kb import kb
 from ostorlab.agent.mixins import agent_report_vulnerability_mixin
 from rich import logging as rich_logging
 
-
 logging.basicConfig(
     format='%(message)s',
     datefmt='[%X]',
@@ -45,8 +44,14 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
 
         """
         logger.info('processing message of selector : %s', message.selector)
-        target = message.data.get('host') or message.data.get('name')
-        command = ['/nuclei/nuclei', '-u', target, '-json', '-irr', '-silent', '-o', OUTPUT_PATH]
+
+        command = []
+        if message.data.get('host') is not None:
+            command = ['/nuclei/nuclei', '-u', message.data.get('host'), '-json', '-irr', '-silent', '-o', OUTPUT_PATH]
+        elif message.data.get('name') is not None:
+            command = ['/nuclei/nuclei', '-u', f'http://{message.data.get("name")}', '-u',
+                       f'https://{message.data.get("name")}', '-json', '-irr', '-silent', '-o', OUTPUT_PATH]
+
         subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
         self._parse_output()
 
