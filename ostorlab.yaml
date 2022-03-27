@@ -1,6 +1,6 @@
 kind: Agent
 name: nuclei
-version: 0.0.6
+version: 0.0.7
 image: images/logo.png 
 description: |
   This repository is an implementation of [Ostorlab Agent](https://pypi.org/project/ostorlab/) for the [Nuclei Scanner](https://github.com/projectdiscovery/nuclei) by Project Discovery.
@@ -72,6 +72,7 @@ source: https://github.com/Ostorlab/agent_nuclei
 in_selectors:
   - v3.asset.ip.v4
   - v3.asset.ip.v6
+  - v3.asset.domain_name
 out_selectors:
   - v3.report.vulnerability
 docker_file_path : Dockerfile
