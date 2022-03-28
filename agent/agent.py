@@ -116,13 +116,15 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
         """Generate dict references from nuclei references template"""
         references = {}
         cwe_list = template_info.get('classification', {}).get('cwe-id', [])
-        for value in cwe_list:
-            link = f'''https://nvd.nist.gov/vuln/detail/{value.replace('cwe-', '')}.html'''
-            references[value] = link
+        if cwe_list is not None:
+            for value in cwe_list:
+                link = f'''https://nvd.nist.gov/vuln/detail/{value.replace('cwe-', '')}.html'''
+                references[value] = link
         cve_list = template_info.get('classification', {}).get('cve-id', [])
-        for value in cve_list:
-            value_link = f'https://cve.mitre.org/cgi-bin/cvename.cgi?name={value}'
-            references[value] = value_link
+        if cve_list is not None:
+            for value in cve_list:
+                value_link = f'https://cve.mitre.org/cgi-bin/cvename.cgi?name={value}'
+                references[value] = value_link
         if template_info.get('reference') is not None:
             for value in template_info.get('reference'):
                 references[value] = value

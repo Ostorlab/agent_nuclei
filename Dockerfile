@@ -2,6 +2,7 @@ FROM python:3.8-alpine as base
 FROM base as builder
 
 RUN mkdir /install
+RUN apk add build-base
 WORKDIR /install
 COPY requirement.txt /requirement.txt
 RUN pip install --prefix=/install -r /requirement.txt
