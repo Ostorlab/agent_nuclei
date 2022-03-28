@@ -65,29 +65,28 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 technical_detail = '## Details: \n ## Host details : \n'
                 host = nuclei_data_dict.get('host', None)
                 if host is not None:
-                    technical_detail += f''' * Host: [{host}]({host}) \n'''
-
+                    technical_detail += f""" * Host: [{host}]({host}) \n"""
                 ip = nuclei_data_dict.get('ip', None)
                 if ip is not None:
-                    technical_detail += f''' * Ip address: [{ip}]({ip}) \n'''
+                    technical_detail += f""" * Ip address: [{ip}]({ip}) \n"""
 
                 curl_command = nuclei_data_dict.get('curl-command', None)
                 if curl_command is not None:
-                    technical_detail += f''' #### Curl command  \n```bash\n{curl_command}\n``` \n '''
+                    technical_detail += f""" #### Curl command  \n```bash\n{curl_command}\n``` \n """
 
                 req_type = nuclei_data_dict.get('type', None)
                 request = nuclei_data_dict.get('request', None)
                 if request is not None:
-                    technical_detail += f''' #### Request  \n```{req_type}  \n{request}\n``` \n'''
+                    technical_detail += f""" #### Request  \n```{req_type}  \n{request}\n``` \n"""
 
                 response = nuclei_data_dict.get('response', None)
                 if response is not None:
-                    technical_detail += f''' #### Response  \n```{req_type}  \n{response}\n``` \n '''
+                    technical_detail += f""" #### Response  \n```{req_type}  \n{response}\n``` \n """
                 nuclei_data_dict.pop('template', None)
                 nuclei_data_dict.pop('template-id', None)
                 nuclei_data_dict.pop('template-url', None)
                 scan_results = json.dumps(nuclei_data_dict, indent=4, sort_keys=True)
-                technical_detail += f''' ```json\n  {scan_results} \n ``` '''
+                technical_detail += f"""```json\n  {scan_results} \n ``` """
                 nuclei_data_dict['info'].pop('author')
                 nuclei_data_dict['info'].pop('tags')
                 template_info = nuclei_data_dict['info']
@@ -118,7 +117,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
         cwe_list = template_info.get('classification', {}).get('cwe-id', [])
         if cwe_list is not None:
             for value in cwe_list:
-                link = f'''https://nvd.nist.gov/vuln/detail/{value.replace('cwe-', '')}.html'''
+                link = f"""https://nvd.nist.gov/vuln/detail/{value.replace('cwe-', '')}.html"""
                 references[value] = link
         cve_list = template_info.get('classification', {}).get('cve-id', [])
         if cve_list is not None:

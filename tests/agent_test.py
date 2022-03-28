@@ -1,13 +1,13 @@
 """Unittests for nuclei class."""
 from unittest import mock
 
-from ostorlab.agent.mixins import agent_report_vulnerability_mixin
-
-from agent import agent
-from ostorlab.agent.kb import kb
 from ostorlab.agent import definitions as agent_definitions
+from ostorlab.agent.kb import kb
+from ostorlab.agent.mixins import agent_report_vulnerability_mixin
 from ostorlab.runtimes import definitions as runtime_definitions
 from ostorlab.utils import defintions as utils_definitions
+
+from agent import agent
 
 
 @mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei.json')
@@ -53,6 +53,7 @@ def testAgentNuclei_whenBinaryAvailable_RunScan(scan_message, mocker):
             targeted_by_ransomware=False,
             targeted_by_nation_state=False,
             cvss_v3_vector='CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N'),
+        # pylint: disable=C4001:
         technical_detail='## Details: \n'
                          ' ## Host details : \n'
                          ' * Host: '
@@ -89,7 +90,7 @@ def testAgentNuclei_whenBinaryAvailable_RunScan(scan_message, mocker):
                          'HTTP/1.1 200 OK\r\n'
                          'Connection:\n'
                          '``` \n'
-                         '  ```json\n'
+                         ' ```json\n'
                          '  {\n'
                          '    "curl-command": "curl -X \'GET\' -d \'\' -H '
                          "'Accept: */*' -H 'Accept-Language: en' -H 'User-Agent: "
