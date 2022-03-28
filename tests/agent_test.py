@@ -54,8 +54,7 @@ def testAgentNuclei_whenBinaryAvailable_RunScan(scan_message, mocker):
             targeted_by_nation_state=False,
             cvss_v3_vector='CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N'),
         # pylint: disable=C4001:
-        technical_detail='## Details: \n'
-                         ' ## Host details : \n'
+        technical_detail='## Host details : \n'
                          ' * Host: '
                          '[https://***REMOVED***.com](https://***REMOVED***.com) \n'
                          ' * Ip address: [50.18.113.127](50.18.113.127) \n'
