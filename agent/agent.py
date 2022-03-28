@@ -13,18 +13,20 @@ from rich import logging as rich_logging
 logging.basicConfig(
     format='%(message)s',
     datefmt='[%X]',
-    handlers=[rich_logging.RichHandler(rich_tracebacks=True)]
+    handlers=[rich_logging.RichHandler(rich_tracebacks=True)],
+    level='INFO',
+    force=True
 )
 logger = logging.getLogger(__name__)
 
 OUTPUT_PATH = '/tmp/result_nuclei.json'
 
 NUCLEI_RISK_MAPPING = {
-    'critical': 'HIGH',
-    'high': 'HIGH',
-    'medium': 'MEDIUM',
-    'low': 'LOW',
-    'info': 'INFO',
+    'critical': agent_report_vulnerability_mixin.RiskRating.HIGH,
+    'high': agent_report_vulnerability_mixin.RiskRating.HIGH,
+    'medium': agent_report_vulnerability_mixin.RiskRating.MEDIUM,
+    'low': agent_report_vulnerability_mixin.RiskRating.LOW,
+    'info': agent_report_vulnerability_mixin.RiskRating.INFO,
 }
 
 
@@ -41,8 +43,15 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
         Returns:
 
         """
-        logger.info('Received a new message, processing...')
-        command = ['/nuclei/nuclei', '-u', message.data.get('host'), '-json', '-irr', '-silent', '-o', OUTPUT_PATH]
+        logger.info('processing message of selector : %s', message.selector)
+
+        command = []
+        if message.data.get('host') is not None:
+            command = ['/nuclei/nuclei', '-u', message.data.get('host'), '-json', '-irr', '-silent', '-o', OUTPUT_PATH]
+        elif message.data.get('name') is not None:
+            command = ['/nuclei/nuclei', '-u', f'http://{message.data.get("name")}', '-u',
+                       f'https://{message.data.get("name")}', '-json', '-irr', '-silent', '-o', OUTPUT_PATH]
+
         subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
         self._parse_output()
 
@@ -87,7 +96,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 self.report_vulnerability(
                     entry=kb.Entry(
                         title=template_info.get('name'),
-                        risk_rating=NUCLEI_RISK_MAPPING[severity],
+                        risk_rating=NUCLEI_RISK_MAPPING[severity].value,
                         short_description=template_info.get('description', ''),
                         description=template_info.get('description', ''),
                         recommendation=template_info.get('recommendation', ''),
@@ -102,7 +111,6 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                     ),
                     technical_detail=technical_detail,
                     risk_rating=NUCLEI_RISK_MAPPING[severity])
-            logger.info('Scan finished. %d findings reported', len(lines))
 
     def _get_references(self, template_info: Dict[str, str]) -> Dict[str, str]:
         """Generate dict references from nuclei references template"""
