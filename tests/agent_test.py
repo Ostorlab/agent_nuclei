@@ -1,6 +1,8 @@
 """Unittests for nuclei class."""
 from unittest import mock
 
+from ostorlab.agent.mixins import agent_report_vulnerability_mixin
+
 from agent import agent
 from ostorlab.agent.kb import kb
 from ostorlab.agent import definitions as agent_definitions
@@ -29,7 +31,7 @@ def testAgentNuclei_whenBinaryAvailable_RunScan(scan_message, mocker):
     mock_report_vulnerability.assert_called_with(
         entry=kb.Entry(
             title='CLink Office v2 XSS',
-            risk_rating='MEDIUM',
+            risk_rating=agent_report_vulnerability_mixin.RiskRating.MEDIUM.value,
             short_description='A cross-site scripting (XSS) vulnerability inthe index page of the CLink Office 2.0 '
                               'management console allows remote attackers to inject arbitrary web script or HTML'
                               ' via the lang parameter.\n',
@@ -151,4 +153,4 @@ def testAgentNuclei_whenBinaryAvailable_RunScan(scan_message, mocker):
                          '    "type": "http"\n'
                          '} \n'
                          ' ``` ',
-        risk_rating='MEDIUM')
+        risk_rating=agent_report_vulnerability_mixin.RiskRating.MEDIUM)
