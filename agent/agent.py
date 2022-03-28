@@ -62,24 +62,24 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             for line in lines:
                 nuclei_data_dict = json.loads(line)
 
-                technical_detail = '## Details: \n ## Host details : \n'
-                host = nuclei_data_dict.get('host', None)
+                technical_detail = '## Host details : \n'
+                host = nuclei_data_dict.get('host')
                 if host is not None:
                     technical_detail += f""" * Host: [{host}]({host}) \n"""
-                ip = nuclei_data_dict.get('ip', None)
+                ip = nuclei_data_dict.get('ip')
                 if ip is not None:
                     technical_detail += f""" * Ip address: [{ip}]({ip}) \n"""
 
-                curl_command = nuclei_data_dict.get('curl-command', None)
+                curl_command = nuclei_data_dict.get('curl-command')
                 if curl_command is not None:
                     technical_detail += f""" #### Curl command  \n```bash\n{curl_command}\n``` \n """
 
-                req_type = nuclei_data_dict.get('type', None)
-                request = nuclei_data_dict.get('request', None)
+                req_type = nuclei_data_dict.get('type')
+                request = nuclei_data_dict.get('request')
                 if request is not None:
                     technical_detail += f""" #### Request  \n```{req_type}  \n{request}\n``` \n"""
 
-                response = nuclei_data_dict.get('response', None)
+                response = nuclei_data_dict.get('response')
                 if response is not None:
                     technical_detail += f""" #### Response  \n```{req_type}  \n{response}\n``` \n """
                 nuclei_data_dict.pop('template', None)
@@ -106,7 +106,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                         targeted_by_malware=False,
                         targeted_by_ransomware=False,
                         targeted_by_nation_state=False,
-                        cvss_v3_vector=template_info.get('classification', {}).get('cvss-metrics', None)
+                        cvss_v3_vector=template_info.get('classification', {}).get('cvss-metrics','')
                     ),
                     technical_detail=technical_detail,
                     risk_rating=NUCLEI_RISK_MAPPING[severity])
