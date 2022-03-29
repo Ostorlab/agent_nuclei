@@ -85,10 +85,10 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 nuclei_data_dict.pop('template', None)
                 nuclei_data_dict.pop('template-id', None)
                 nuclei_data_dict.pop('template-url', None)
-                scan_results = json.dumps(nuclei_data_dict, indent=4, sort_keys=True)
-                technical_detail += f"""```json\n  {scan_results} \n ``` """
                 nuclei_data_dict['info'].pop('author')
                 nuclei_data_dict['info'].pop('tags')
+                scan_results = json.dumps(nuclei_data_dict, indent=4, sort_keys=True)
+                technical_detail += f"""```json\n  {scan_results} \n ``` """
                 template_info = nuclei_data_dict['info']
                 severity = template_info.get('severity')
 
