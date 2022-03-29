@@ -61,14 +61,19 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             lines = f.readlines()
             for line in lines:
                 nuclei_data_dict = json.loads(line)
+                technical_detail = ''
+                matcher_status = nuclei_data_dict.get('matcher-status', False)
+                matcher_name = nuclei_data_dict.get('matcher-name', None)
+                matched_at = nuclei_data_dict.get('matched-at')
+                if matcher_status is True and matcher_name is not None:
+                    technical_detail += f"""Matched : `{matcher_name}` at  [{matched_at}]({matched_at}) \n"""
 
-                technical_detail = '## Target: \n'
-                host = nuclei_data_dict.get('host')
-                if host is not None:
-                    technical_detail += f""" * Host: [{host}]({host}) \n"""
-                ip = nuclei_data_dict.get('ip')
-                if ip is not None:
-                    technical_detail += f""" * IP Address: [{ip}]({ip}) \n"""
+                template_info = nuclei_data_dict['info']
+                extracted_results = nuclei_data_dict.get('extracted-results', [])
+                if len(extracted_results) > 0:
+                    technical_detail += f"""### {template_info.get('name')}: \n"""
+                    for value in extracted_results:
+                        technical_detail += f"""* {value}\n"""
 
                 curl_command = nuclei_data_dict.get('curl-command')
                 if curl_command is not None:
@@ -85,11 +90,11 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 nuclei_data_dict.pop('template', None)
                 nuclei_data_dict.pop('template-id', None)
                 nuclei_data_dict.pop('template-url', None)
-                scan_results = json.dumps(nuclei_data_dict, indent=4, sort_keys=True)
-                technical_detail += f"""```json\n  {scan_results} \n ``` """
                 nuclei_data_dict['info'].pop('author')
                 nuclei_data_dict['info'].pop('tags')
-                template_info = nuclei_data_dict['info']
+                scan_results = json.dumps(nuclei_data_dict, indent=4, sort_keys=True)
+                technical_detail += f"""```json\n  {scan_results} \n ``` """
+
                 severity = template_info.get('severity')
 
                 self.report_vulnerability(
