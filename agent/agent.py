@@ -49,6 +49,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
 
         agent.Agent.__init__(self, agent_definition, agent_settings)
         agent_persist_mixin.AgentPersistMixin.__init__(self, agent_settings)
+        agent_report_vulnerability_mixin.AgentReportVulnMixin.__init__(self)
 
     def process(self, message: m.Message) -> None:
         """Starts Nuclei scan wait for the scan to finish,
@@ -69,7 +70,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
         if templates_urls is not None:
             self._run_templates(templates_urls, message.data.get('host'), message.data.get('name'))
 
-        if self.args.get('use_default_templates') is not None and self.args.get('use_default_templates') == True:
+        if self.args.get('use_default_templates') is not None and self.args.get('use_default_templates') is True:
             self._run_command(message.data.get('host'), message.data.get('name'))
 
     def _parse_output(self):
