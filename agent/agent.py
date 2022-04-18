@@ -2,11 +2,10 @@
 import subprocess
 import json
 import logging
-from typing import Dict
+from typing import Dict, List
 import tempfile
 import requests
 import pathlib
-from typing import List
 
 from ostorlab.agent import agent
 from ostorlab.agent import message as m
