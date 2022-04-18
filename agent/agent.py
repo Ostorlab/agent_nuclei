@@ -147,7 +147,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             if len(templates) > 0:
                 self._run_command(host, name, templates)
 
-    def _run_command(self, host=None, name=None, templates=[]):
+    def _run_command(self, host=None, name=None, templates=None):
         command = []
         if host is not None:
             command = ['/nuclei/nuclei', '-u', host, '-json', '-irr', '-silent', '-o', OUTPUT_PATH]
@@ -155,8 +155,9 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             command = ['/nuclei/nuclei', '-u', f'http://{name}', '-u',
                        f'https://{name}', '-json', '-irr', '-silent', '-o', OUTPUT_PATH]
 
-        for template in templates:
-            command.extend(['-t', template])
+        if templates is not None:
+            for template in templates:
+                command.extend(['-t', template])
 
         subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
         self._parse_output()
