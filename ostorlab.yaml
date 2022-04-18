@@ -77,3 +77,7 @@ out_selectors:
   - v3.report.vulnerability
 docker_file_path : Dockerfile
 docker_build_root : .
+args:
+  - name: "template_urls"
+    type: "array"
+    description: "list of template urls to run."

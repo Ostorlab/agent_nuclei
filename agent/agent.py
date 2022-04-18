@@ -3,6 +3,10 @@ import subprocess
 import json
 import logging
 from typing import Dict
+import tempfile
+import requests
+import pathlib
+
 
 from ostorlab.agent import agent
 from ostorlab.agent import message as m
@@ -44,16 +48,12 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
 
         """
         logger.info('processing message of selector : %s', message.selector)
+        self._run_command(message.data.get('host'), message.data.get('name'))
 
-        command = []
-        if message.data.get('host') is not None:
-            command = ['/nuclei/nuclei', '-u', message.data.get('host'), '-json', '-irr', '-silent', '-o', OUTPUT_PATH]
-        elif message.data.get('name') is not None:
-            command = ['/nuclei/nuclei', '-u', f'http://{message.data.get("name")}', '-u',
-                       f'https://{message.data.get("name")}', '-json', '-irr', '-silent', '-o', OUTPUT_PATH]
 
-        subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-        self._parse_output()
+        templates_urls = self.args.get('template_urls')
+        if templates_urls is not None:
+            self._run_templates(templates_urls, message.data.get('host'), message.data.get('name'))
 
     def _parse_output(self):
         """Parse Nuclei Json output and emit the findings as vulnerabilities"""
@@ -133,6 +133,33 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             for value in template_info.get('reference'):
                 references[value] = value
         return references
+
+    def _run_templates(self, template_urls, host=None, name=None):
+        templates= []
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            path = pathlib.Path(tmp_dir)
+            for url in template_urls:
+                r = requests.get(url, allow_redirects=True)
+                with open(str(path / url.decode().split('/')[-1]), 'wb') as f:
+                    f.write(r.content)
+                templates.append(path / url.decode().split('/')[-1])
+
+            if len(templates) > 0:
+                self._run_command(host, name, templates)
+
+    def _run_command(self, host=None, name=None, templates=[]):
+        command = []
+        if host is not None:
+            command = ['/nuclei/nuclei', '-u', host, '-json', '-irr', '-silent', '-o', OUTPUT_PATH]
+        elif name is not None:
+            command = ['/nuclei/nuclei', '-u', f'http://{name}', '-u',
+                       f'https://{name}', '-json', '-irr', '-silent', '-o', OUTPUT_PATH]
+
+        for template in templates:
+            command.extend(['-t', template])
+
+        subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        self._parse_output()
 
 
 if __name__ == '__main__':
