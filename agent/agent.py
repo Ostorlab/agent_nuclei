@@ -6,7 +6,7 @@ from typing import Dict
 import tempfile
 import requests
 import pathlib
-
+from typing import List
 
 from ostorlab.agent import agent
 from ostorlab.agent import message as m
@@ -70,7 +70,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
         if templates_urls is not None:
             self._run_templates(templates_urls, message.data.get('host'), message.data.get('name'))
 
-        if self.args.get('use_default_templates') is not None and self.args.get('use_default_templates') is True:
+        if self.args.get('use_default_templates', True):
             self._run_command(message.data.get('host'), message.data.get('name'))
 
     def _parse_output(self):
@@ -152,8 +152,9 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 references[value] = value
         return references
 
-    def _run_templates(self, template_urls, host=None, name=None):
-        templates= []
+    def _run_templates(self, template_urls: List[str], host: str = None, name: str = None):
+        """Run Nuclei scan on the provided templates"""
+        templates = []
         with tempfile.TemporaryDirectory() as tmp_dir:
             path = pathlib.Path(tmp_dir)
             for url in template_urls:
