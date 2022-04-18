@@ -157,7 +157,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             path = pathlib.Path(tmp_dir)
             for url in template_urls:
                 r = requests.get(url, allow_redirects=True)
-                with open(str(path / url.decode().split('/')[-1]), 'wb') as f:
+                with (path / url.decode().split('/')[-1]).open(mode='wb') as f:
                     f.write(r.content)
                 templates.append(path / url.decode().split('/')[-1])
 
