@@ -11,7 +11,10 @@ import pathlib
 from ostorlab.agent import agent
 from ostorlab.agent import message as m
 from ostorlab.agent.kb import kb
+from ostorlab.agent.mixins import agent_persist_mixin
 from ostorlab.agent.mixins import agent_report_vulnerability_mixin
+from ostorlab.agent import definitions as agent_definitions
+from ostorlab.runtimes import definitions as runtime_definitions
 from rich import logging as rich_logging
 
 logging.basicConfig(
@@ -33,9 +36,19 @@ NUCLEI_RISK_MAPPING = {
     'info': agent_report_vulnerability_mixin.RiskRating.INFO,
 }
 
+STORAGE_NAME = 'agent_nuclei'
 
-class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnMixin):
+
+class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnMixin,
+                  agent_persist_mixin.AgentPersistMixin):
     """Nuclei agent."""
+
+    def __init__(self,
+                 agent_definition: agent_definitions.AgentDefinition,
+                 agent_settings: runtime_definitions.AgentSettings) -> None:
+
+        agent.Agent.__init__(self, agent_definition, agent_settings)
+        agent_persist_mixin.AgentPersistMixin.__init__(self, agent_settings)
 
     def process(self, message: m.Message) -> None:
         """Starts Nuclei scan wait for the scan to finish,
@@ -48,12 +61,16 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
 
         """
         logger.info('processing message of selector : %s', message.selector)
-        self._run_command(message.data.get('host'), message.data.get('name'))
 
+        if self.set_add(STORAGE_NAME, f'{message.data.get("host")}:{message.data.get("name")}') is False:
+            return
 
         templates_urls = self.args.get('template_urls')
         if templates_urls is not None:
             self._run_templates(templates_urls, message.data.get('host'), message.data.get('name'))
+
+        if self.args.get('use_default_templates') is not None and self.args.get('use_default_templates') == True:
+            self._run_command(message.data.get('host'), message.data.get('name'))
 
     def _parse_output(self):
         """Parse Nuclei Json output and emit the findings as vulnerabilities"""

@@ -81,3 +81,7 @@ args:
   - name: "template_urls"
     type: "array"
     description: "list of template urls to run."
+  - name: "use_default_templates"
+    type: "boolean"
+    description: "use nuclei's default templates to scan."
+    value: True
