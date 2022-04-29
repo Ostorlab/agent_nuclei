@@ -1,6 +1,7 @@
 """Pytest fixture for the nuclei agent."""
 import pathlib
 import random
+import json
 
 import pytest
 
@@ -52,8 +53,8 @@ def nuclei_agent_args():
             utils_definitions.Arg(
                 name='template_urls',
                 type='array',
-                value=[b'https://raw.githubusercontent.com/Ostorlab/main/templates/CVE1.yaml',
-                      b'https://raw.githubusercontent.com/Ostorlab/main/templates/CVE2.yaml'])],
+                value=json.dumps(['https://raw.githubusercontent.com/Ostorlab/main/templates/CVE1.yaml',
+                      'https://raw.githubusercontent.com/Ostorlab/main/templates/CVE2.yaml']).encode())],
             healthcheck_port=random.randint(5000, 6000),
             redis_url='redis://guest:guest@localhost:6379')
 
