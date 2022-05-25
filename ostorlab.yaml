@@ -73,6 +73,7 @@ in_selectors:
   - v3.asset.ip.v4
   - v3.asset.ip.v6
   - v3.asset.domain_name
+  - v3.asset.link
 out_selectors:
   - v3.report.vulnerability
 docker_file_path : Dockerfile
@@ -85,3 +86,12 @@ args:
     type: "boolean"
     description: "use nuclei's default templates to scan."
     value: True
+  - name: "https"
+    type: "boolean"
+    description: "Target that doesn't specify protocol will use this argument to set the protocol to either http
+     or https."
+    value: true
+  - name: "port"
+    type: "number"
+    description: "Target that doesn't specify port will use this argument to set the target port."
+    value: 443
