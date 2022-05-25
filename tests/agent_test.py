@@ -35,7 +35,8 @@ def testAgentNuclei_whenUrlTemplatesGivent_RunScan(scan_message, nuclei_agent_ar
 
 
 @mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei.json')
-def testAgentNuclei_whenLinkMessageAndBinaryAvailable_RunScan(scan_message_link, nuclei_agent, agent_persist_mock, mocker):
+def testAgentNuclei_whenLinkMessageAndBinaryAvailable_RunScan(scan_message_link, nuclei_agent,
+                                                              agent_persist_mock, mocker):
     """Tests running the agent and parsing the json output."""
     mocker.patch('subprocess.run', return_value=None)
     mock_report_vulnerability = mocker.patch('agent.agent.AgentNuclei.report_vulnerability', return_value=None)
