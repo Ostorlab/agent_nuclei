@@ -168,9 +168,9 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
     def _prepare_target(self, message: m.Message) -> str:
         """Prepare targets based on type, if a domain name is provided, port and protocol are collected from the config.
         """
-        if message.data.get('host'):
+        if message.data.get('host') is not None:
             return message.data.get('host')
-        elif message.data.get('name'):
+        elif message.data.get('name') is not None:
             domain_name = message.data.get('name')
             https = self.args.get('https')
             port = self.args.get('port')
@@ -182,7 +182,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 return f'http://{domain_name}'
             else:
                 return f'http://{domain_name}:{port}'
-        elif message.data.get('url'):
+        elif message.data.get('url') is not None:
             return message.data.get('url')
 
     def _run_command(self, target: str, templates: List[str] = None) -> None:
