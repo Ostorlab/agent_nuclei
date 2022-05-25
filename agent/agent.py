@@ -61,18 +61,18 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
 
         """
         logger.info('processing message of selector : %s', message.selector)
-
-        if self.set_add(STORAGE_NAME, f'{message.data.get("host")}:{message.data.get("name")}') is False:
+        target = self._prepare_target(message)
+        if self.set_add(STORAGE_NAME, target) is False:
             return
 
         templates_urls = self.args.get('template_urls')
         if templates_urls is not None:
-            self._run_templates(templates_urls, message.data.get('host'), message.data.get('name'))
+            self._run_templates(templates_urls, target)
 
         if self.args.get('use_default_templates', True):
-            self._run_command(message.data.get('host'), message.data.get('name'))
+            self._run_command(target)
 
-    def _parse_output(self):
+    def _parse_output(self) -> None:
         """Parse Nuclei Json output and emit the findings as vulnerabilities"""
         with open(OUTPUT_PATH, 'r', encoding='UTF-8') as f:
             lines = f.readlines()
@@ -151,7 +151,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 references[value] = value
         return references
 
-    def _run_templates(self, template_urls: List[str], host: str = None, name: str = None):
+    def _run_templates(self, template_urls: List[str], target: str) -> None:
         """Run Nuclei scan on the provided templates"""
         templates = []
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -163,16 +163,31 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 templates.append(path / url.split('/')[-1])
 
             if len(templates) > 0:
-                self._run_command(host, name, templates)
+                self._run_command(target, templates)
 
-    def _run_command(self, host=None, name=None, templates=None):
-        command = []
-        if host is not None:
-            command = ['/nuclei/nuclei', '-u', host, '-json', '-irr', '-silent', '-o', OUTPUT_PATH]
-        elif name is not None:
-            command = ['/nuclei/nuclei', '-u', f'http://{name}', '-u',
-                       f'https://{name}', '-json', '-irr', '-silent', '-o', OUTPUT_PATH]
+    def _prepare_target(self, message: m.Message) -> str:
+        """Prepare targets based on type, if a domain name is provided, port and protocol are collected from the config.
+        """
+        if message.data.get('host'):
+            return message.data.get('host')
+        elif message.data.get('name'):
+            domain_name = message.data.get('name')
+            https = self.args.get('https')
+            port = self.args.get('port')
+            if https is True and port != 443:
+                return f'https://{domain_name}:{port}'
+            elif https is True:
+                return f'https://{domain_name}'
+            elif port == 80:
+                return f'http://{domain_name}'
+            else:
+                return f'http://{domain_name}:{port}'
+        elif message.data.get('url'):
+            return message.data.get('url')
 
+    def _run_command(self, target: str, templates: List[str] = None) -> None:
+        """Run Nuclei command on the provided target using defined or default templates"""
+        command = ['/nuclei/nuclei', '-u', target, '-json', '-irr', '-silent', '-o', OUTPUT_PATH]
         if templates is not None:
             for template in templates:
                 command.extend(['-t', template])

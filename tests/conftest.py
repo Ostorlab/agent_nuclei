@@ -26,6 +26,17 @@ def scan_message():
 
 
 @pytest.fixture
+def scan_message_link():
+    """Creates a dummy message of type v3.asset.ip.v4 to be used by the agent for testing purposes.
+    """
+    selector = 'v3.asset.link'
+    msg_data = {
+            'url': 'https://apple.com',
+            'method': 'GET'
+        }
+    return message.Message.from_data(selector, data=msg_data)
+
+@pytest.fixture
 def nuclei_agent():
     with (pathlib.Path(__file__).parent.parent / 'ostorlab.yaml').open() as yaml_o:
         definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
