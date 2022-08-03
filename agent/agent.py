@@ -199,7 +199,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 if path.exists(template):
                     command.extend(['-t', str(template)])
 
-        subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        subprocess.run(command, check=True)
 
         self._parse_output()
 
