@@ -163,7 +163,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 r = requests.get(url, allow_redirects=True)
                 with (path / url.split('/')[-1]).open(mode='wb') as f:
                     f.write(r.content)
-                templates.append(path / url.split('/')[-1])
+                templates.append((path / url.split('/')[-1]).name)
 
             if len(templates) > 0:
                 self._run_command(target, templates)
@@ -190,13 +190,13 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
 
     def _run_command(self, target: str, templates: List[str] = None) -> None:
         """Run Nuclei command on the provided target using defined or default templates"""
-        command = ['/nuclei/nuclei', '-u', target, '-json', '-irr', '-o', OUTPUT_PATH]
+        command = ['/nuclei/nuclei', '-u', target, '-json', '-irr', '-silent', '-o', OUTPUT_PATH]
         if templates is not None:
             for template in templates:
                 if path.exists(template):
-                    command.extend(['-t', str(template)])
+                    command.extend(['-t', template])
 
-        subprocess.run(command, check=True)
+        subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
         self._parse_output()
 
