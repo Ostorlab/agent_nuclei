@@ -15,9 +15,6 @@ from ostorlab.agent.mixins import agent_report_vulnerability_mixin
 from ostorlab.agent import definitions as agent_definitions
 from ostorlab.runtimes import definitions as runtime_definitions
 from rich import logging as rich_logging
-
-
-from time import sleep
 from os import path
 
 logging.basicConfig(
