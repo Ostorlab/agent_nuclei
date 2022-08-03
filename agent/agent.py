@@ -158,12 +158,12 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
         """Run Nuclei scan on the provided templates"""
         templates = []
         with tempfile.TemporaryDirectory() as tmp_dir:
-            path = pathlib.Path(tmp_dir)
+            file_path = pathlib.Path(tmp_dir)
             for url in template_urls:
                 r = requests.get(url, allow_redirects=True)
-                with (path / url.split('/')[-1]).open(mode='wb') as f:
+                with (file_path / url.split('/')[-1]).open(mode='wb') as f:
                     f.write(r.content)
-                templates.append((path / url.split('/')[-1]).name)
+                templates.append((file_path / url.split('/')[-1]).name)
 
             if len(templates) > 0:
                 self._run_command(target, templates)
