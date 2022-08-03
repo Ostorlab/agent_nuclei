@@ -16,6 +16,10 @@ from ostorlab.agent import definitions as agent_definitions
 from ostorlab.runtimes import definitions as runtime_definitions
 from rich import logging as rich_logging
 
+
+from time import sleep
+from os import path
+
 logging.basicConfig(
     format='%(message)s',
     datefmt='[%X]',
@@ -68,7 +72,6 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
         templates_urls = self.args.get('template_urls')
         if templates_urls is not None:
             self._run_templates(templates_urls, target)
-
         if self.args.get('use_default_templates', True):
             self._run_command(target)
 
@@ -190,12 +193,14 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
 
     def _run_command(self, target: str, templates: List[str] = None) -> None:
         """Run Nuclei command on the provided target using defined or default templates"""
-        command = ['/nuclei/nuclei', '-u', target, '-json', '-irr', '-silent', '-o', OUTPUT_PATH]
+        command = ['/nuclei/nuclei', '-u', target, '-json', '-irr', '-o', OUTPUT_PATH]
         if templates is not None:
             for template in templates:
-                command.extend(['-t', template])
+                if path.exists(template):
+                    command.extend(['-t', str(template)])
 
         subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
         self._parse_output()
 
 
