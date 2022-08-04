@@ -65,7 +65,9 @@ def testAgentNuclei_whenTemplatesPrvided(requests_mock, scan_message, nuclei_age
     nuclei_agent_args.process(scan_message)
     run_command_mock.assert_called()
     run_command_args = run_command_mock.call_args_list
-    assert run_command_args[0].args == (['/nuclei/nuclei', '-u', '209.235.136.112', '-json', '-irr', '-silent', '-o', './tests/result_nuclei.json', '-t', 'CVE1.yaml', '-t', 'CVE2.yaml'],)
-    assert run_command_args[1].args == (['/nuclei/nuclei', '-u', '209.235.136.112', '-json', '-irr', '-silent', '-o', './tests/result_nuclei.json'],)
+    assert run_command_args[0].args == (['/nuclei/nuclei', '-u', '209.235.136.112', '-json', '-irr', '-silent', '-o',
+                                         './tests/result_nuclei.json', '-t', 'CVE1.yaml', '-t', 'CVE2.yaml'],)
+    assert run_command_args[1].args == (['/nuclei/nuclei', '-u', '209.235.136.112', '-json', '-irr', '-silent', '-o',
+                                         './tests/result_nuclei.json'],)
 
 
