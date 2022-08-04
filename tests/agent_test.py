@@ -30,11 +30,12 @@ def testAgentNuclei_whenUrlTemplatesGivent_RunScan(requests_mock, scan_message, 
     nuclei_agent_args.process(scan_message)
 
     run_command_mock.assert_called()
-    run_command_args= run_command_mock.call_args_list
+    run_command_args = run_command_mock.call_args_list
     assert run_command_args[1][0][0] == ['/nuclei/nuclei', '-u', '209.235.136.112', '-json', '-irr',
                                          '-silent', '-o', './tests/result_nuclei.json']
-    assert 'CVE1.yaml' in str(run_command_args[0][0][0][9])
-    assert 'CVE2.yaml' in str(run_command_args[0][0][0][11])
+
+    assert run_command_args[0].args == (['/nuclei/nuclei', '-u', '209.235.136.112', '-json', '-irr', '-silent', '-o',
+                                         './tests/result_nuclei.json', '-t', 'CVE1.yaml', '-t', 'CVE2.yaml'],)
     mock_report_vulnerability.assert_called()
 
 
