@@ -15,6 +15,7 @@ from ostorlab.agent.mixins import agent_report_vulnerability_mixin
 from ostorlab.agent import definitions as agent_definitions
 from ostorlab.runtimes import definitions as runtime_definitions
 from rich import logging as rich_logging
+from os import path
 
 logging.basicConfig(
     format='%(message)s',
@@ -68,7 +69,6 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
         templates_urls = self.args.get('template_urls')
         if templates_urls is not None:
             self._run_templates(templates_urls, target)
-
         if self.args.get('use_default_templates', True):
             self._run_command(target)
 
@@ -158,12 +158,12 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
         """Run Nuclei scan on the provided templates"""
         templates = []
         with tempfile.TemporaryDirectory() as tmp_dir:
-            path = pathlib.Path(tmp_dir)
+            file_path = pathlib.Path(tmp_dir)
             for url in template_urls:
                 r = requests.get(url, allow_redirects=True)
-                with (path / url.split('/')[-1]).open(mode='wb') as f:
+                with (file_path / url.split('/')[-1]).open(mode='wb') as f:
                     f.write(r.content)
-                templates.append(path / url.split('/')[-1])
+                templates.append((file_path / url.split('/')[-1]).name)
 
             if len(templates) > 0:
                 self._run_command(target, templates)
@@ -193,9 +193,11 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
         command = ['/nuclei/nuclei', '-u', target, '-json', '-irr', '-silent', '-o', OUTPUT_PATH]
         if templates is not None:
             for template in templates:
-                command.extend(['-t', template])
+                if path.exists(template):
+                    command.extend(['-t', template])
 
         subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
         self._parse_output()
 
 
