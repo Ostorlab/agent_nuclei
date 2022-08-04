@@ -63,12 +63,9 @@ def testAgentNuclei_whenTemplatesPrvided(requests_mock, scan_message, nuclei_age
     requests_mock.get('https://raw.githubusercontent.com/Ostorlab/main/templates/CVE2.yaml', content=b'test2')
     mocker.patch('agent.agent.AgentNuclei.report_vulnerability', return_value=None)
     nuclei_agent_args.process(scan_message)
-
     run_command_mock.assert_called()
     run_command_args = run_command_mock.call_args_list
-
-    assert '-t' in str(run_command_args[0][0][0][8]) and str(run_command_args[0][0][0][10])
-    assert 'CVE1.yaml' in str(run_command_args[0][0][0][9])
-    assert 'CVE2.yaml' in str(run_command_args[0][0][0][11])
+    assert run_command_args[0].args == (['/nuclei/nuclei', '-u', '209.235.136.112', '-json', '-irr', '-silent', '-o', './tests/result_nuclei.json', '-t', 'CVE1.yaml', '-t', 'CVE2.yaml'],)
+    assert run_command_args[1].args == (['/nuclei/nuclei', '-u', '209.235.136.112', '-json', '-irr', '-silent', '-o', './tests/result_nuclei.json'],)
 
 
