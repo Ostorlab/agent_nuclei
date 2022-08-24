@@ -3,8 +3,6 @@ from unittest import mock
 
 from ostorlab.agent.mixins import agent_report_vulnerability_mixin
 
-from tests.conftest import scan_message_network_range
-
 
 @mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei.json')
 def testAgentNuclei_whenBinaryAvailable_RunScan(scan_message, nuclei_agent, agent_persist_mock, mocker):
