@@ -85,5 +85,6 @@ def testAgentNuclei_whenMessageIsIpRange_scanMultipleTargets(requests_mock, scan
     nuclei_agent.process(scan_message_network_range)
     run_command_mock.assert_called()
     run_command_args = run_command_mock.call_args_list
-    assert run_command_args[0].args == (['/nuclei/nuclei', '-u', '209.235.136.112', '-json', '-irr', '-silent', '-o',
-                                         './tests/result_nuclei.json', '-t', 'CVE1.yaml', '-t', 'CVE2.yaml'],)
+    assert '209.235.136.113' in run_command_args[0].args[0]
+    assert '209.235.136.126' in run_command_args[0].args[0]
+    assert '209.235.136.126' in run_command_args[0].args[0]
