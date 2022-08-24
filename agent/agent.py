@@ -173,8 +173,8 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
     def _prepare_targets(self, message: m.Message) -> List[str]:
         """Prepare targets based on type, if a domain name is provided, port and protocol are collected from the config.
         """
-        if message.data.get('host') is not None and message.data.get('mask') is not None:
-            ip_network = ipaddress.ip_network(f"{message.data.get('host')}/{message.data.get('mask')}")
+        if message.data.get('host') is not None:
+            ip_network = ipaddress.ip_network(f"{message.data.get('host')}/{message.data.get('mask','32')}")
             return [str(h) for h in ip_network.hosts()]
         elif message.data.get('name') is not None:
             domain_name = message.data.get('name')
