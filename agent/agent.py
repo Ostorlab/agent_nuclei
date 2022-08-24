@@ -193,7 +193,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
 
     def _run_command(self, targets: List[str], templates: List[str] = None) -> None:
         """Run Nuclei command on the provided target using defined or default templates"""
-        command = ['/nuclei/nuclei', '-u']
+        command = ['/nuclei/nuclei']
         for target in targets:
             command.extend(['-u',target])
         command.extend(['-json', '-irr', '-silent', '-o', OUTPUT_PATH])
