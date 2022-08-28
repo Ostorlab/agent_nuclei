@@ -84,6 +84,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             self._run_templates(templates_urls, targets)
         if self.args.get('use_default_templates', True):
             self._run_command(targets)
+        logger.info('Done processing message of selector : %s', message.selector)
 
     def _parse_output(self) -> None:
         """Parse Nuclei Json output and emit the findings as vulnerabilities"""
@@ -173,7 +174,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
         with tempfile.TemporaryDirectory() as tmp_dir:
             file_path = pathlib.Path(tmp_dir)
             for url in template_urls:
-                r = requests.get(url, allow_redirects=True)
+                r = requests.get(url, allow_redirects=True, timeout=60)
                 with (file_path / url.split('/')[-1]).open(mode='wb') as f:
                     f.write(r.content)
                 templates.append((file_path / url.split('/')[-1]).name)
