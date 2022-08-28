@@ -3,12 +3,15 @@ import ipaddress
 import json
 import logging
 import pathlib
+from urllib import parse
 import subprocess
 import tempfile
 from os import path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
+import dataclasses
 import requests
+
 from ostorlab.agent import agent
 from ostorlab.agent import definitions as agent_definitions
 from ostorlab.agent import message as m
@@ -29,6 +32,8 @@ logger = logging.getLogger(__name__)
 
 OUTPUT_PATH = '/tmp/result_nuclei.json'
 
+SCHEME_TO_PORT = {'http': 80, 'https': 443}
+
 NUCLEI_RISK_MAPPING = {
     'critical': agent_report_vulnerability_mixin.RiskRating.HIGH,
     'high': agent_report_vulnerability_mixin.RiskRating.HIGH,
@@ -38,6 +43,13 @@ NUCLEI_RISK_MAPPING = {
 }
 
 STORAGE_NAME = 'agent_nuclei'
+
+
+@dataclasses.dataclass
+class Target:
+    name: str
+    schema: Optional[str] = None
+    port: Optional[int] = None
 
 
 class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnMixin,
@@ -63,16 +75,15 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
 
         """
         logger.info('processing message of selector : %s', message.selector)
+        if self._is_target_already_processed(message) is False:
+            return
+
         targets = self._prepare_targets(message)
-        not_processed_targets = []
-        for target in targets:
-            if self.set_add(STORAGE_NAME, target) is True:
-                not_processed_targets.append(target)
         templates_urls = self.args.get('template_urls')
         if templates_urls is not None:
-            self._run_templates(templates_urls, not_processed_targets)
+            self._run_templates(templates_urls, targets)
         if self.args.get('use_default_templates', True):
-            self._run_command(not_processed_targets)
+            self._run_command(targets)
 
     def _parse_output(self) -> None:
         """Parse Nuclei Json output and emit the findings as vulnerabilities"""
@@ -170,27 +181,87 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             if len(templates) > 0:
                 self._run_command(targets, templates)
 
+    def _is_target_already_processed(self, message) -> bool:
+        """Checks if the target has already been processed before, relies on the redis server."""
+        if message.data.get('url') is not None or message.data.get('name') is not None:
+            unicity_check_key = None
+            if message.data.get('url') is not None:
+                target = self._get_target_from_url(message.data['url'])
+                unicity_check_key = f'{target.schema}_{target.name}_{target.port}'
+            elif message.data.get('name') is not None:
+                port = self._get_port(message)
+                schema = self._get_schema(message)
+                domain = message.data['name']
+                unicity_check_key = f'{schema}_{domain}_{port}'
+
+            if self.set_add(b'agent_whatweb_asset', unicity_check_key) is True:
+                return True
+            else:
+                logger.info('target %s/ was processed before, exiting', unicity_check_key)
+                return False
+        elif message.data.get('host') is not None:
+            host = message.data.get('host')
+            mask = message.data.get('mask')
+            schema = self._get_schema(message)
+            port = self._get_port(message)
+            if mask is not None:
+                addresses = ipaddress.ip_network(f'{host}/{mask}')
+                result = self.add_ip_network('agent_whois_ip_asset', addresses, lambda net: f'{schema}_{net}_{port}')
+            else:
+                addresses = host
+                result = self.set_add('agent_whois_ip_asset', f'{schema}_{host}_{port}')
+
+            if result is False:
+                logger.info('target %s was processed before, exiting', addresses)
+            return result
+
+    def _get_target_from_url(self, url: str) -> Target:
+        """Compute schema and port from an URL"""
+        parsed_url = parse.urlparse(url)
+        schema = parsed_url.scheme or self.args.get('schema')
+        domain_name = parse.urlparse(url).netloc
+        port = 0
+        if len(parsed_url.netloc.split(':')) > 1:
+            domain_name = parsed_url.netloc.split(':')[0]
+            port = parsed_url.netloc.split(':')[-1]
+        port = int(port) or SCHEME_TO_PORT.get(schema) or self.args.get('port')
+        target = Target(name=domain_name, schema=schema, port=port)
+        return target
+
+    def _get_port(self, message: m.Message) -> int:
+        """Returns the port to be used for the target."""
+        if message.data.get('port') is not None:
+            return message.data['port']
+        else:
+            return self.args.get('port')
+
+    def _get_schema(self, message: m.Message) -> str:
+        """Returns the schema to be used for the target."""
+        if message.data.get('schema') is not None:
+            return message.data['schema']
+        elif message.data.get('protocol') is not None:
+            return message.data['protocol']
+        elif self.args.get('https') is True:
+            return 'https'
+        else:
+            return 'http'
+
     def _prepare_targets(self, message: m.Message) -> List[str]:
         """Prepare targets based on type, if a domain name is provided, port and protocol are collected from the config.
         """
         if message.data.get('host') is not None:
+            host = message.data.get('host')
             if message.data.get('mask') is None:
-                ip_network = ipaddress.ip_network(f"""{message.data.get('host')}""")
+                ip_network = ipaddress.ip_network(host)
             else:
-                ip_network = ipaddress.ip_network(f"""{message.data.get('host')}/{message.data.get('mask')}""")
+                mask = message.data.get('mask')
+                ip_network = ipaddress.ip_network(f'{host}/{mask}')
             return [str(h) for h in ip_network.hosts()]
         elif message.data.get('name') is not None:
             domain_name = message.data.get('name')
-            https = self.args.get('https')
+            schema = self._get_schema(message)
             port = self.args.get('port')
-            if https is True and port != 443:
-                return [f'https://{domain_name}:{port}']
-            elif https is True:
-                return [f'https://{domain_name}']
-            elif port == 80:
-                return [f'http://{domain_name}']
-            else:
-                return [f'http://{domain_name}:{port}']
+            return [f'{schema}://{domain_name}:{port}']
         elif message.data.get('url') is not None:
             return [message.data.get('url')]
 
@@ -198,7 +269,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
         """Run Nuclei command on the provided target using defined or default templates"""
         command = ['/nuclei/nuclei']
         for target in targets:
-            command.extend(['-u',target])
+            command.extend(['-u', target])
         command.extend(['-json', '-irr', '-silent', '-o', OUTPUT_PATH])
         if templates is not None:
             for template in templates:
