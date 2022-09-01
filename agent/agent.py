@@ -8,7 +8,7 @@ import requests
 import pathlib
 
 from ostorlab.agent import agent
-from ostorlab.agent import message as m
+from ostorlab.agent.message import message as m
 from ostorlab.agent.kb import kb
 from ostorlab.agent.mixins import agent_persist_mixin
 from ostorlab.agent.mixins import agent_report_vulnerability_mixin
