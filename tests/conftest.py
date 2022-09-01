@@ -26,6 +26,18 @@ def scan_message():
 
 
 @pytest.fixture
+def scan_message_network_range():
+    """Creates a dummy message of type v3.asset.ip.v4 to be used by the agent for testing purposes.
+    """
+    selector = 'v3.asset.ip.v4'
+    msg_data = {
+            'host': '209.235.136.112',
+            'mask': '28',
+            'version': 4
+        }
+    return message.Message.from_data(selector, data=msg_data)
+
+@pytest.fixture
 def scan_message_link():
     """Creates a dummy message of type v3.asset.ip.v4 to be used by the agent for testing purposes.
     """
