@@ -195,7 +195,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 domain = message.data['name']
                 unicity_check_key = f'{schema}_{domain}_{port}'
 
-            if self.set_add(b'agent_whatweb_asset', unicity_check_key) is True:
+            if self.set_add(b'agent_nuclei_asset', unicity_check_key) is True:
                 return True
             else:
                 logger.info('target %s/ was processed before, exiting', unicity_check_key)
@@ -210,7 +210,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 result = self.add_ip_network('agent_whois_ip_asset', addresses, lambda net: f'{schema}_{net}_{port}')
             else:
                 addresses = host
-                result = self.set_add('agent_whois_ip_asset', f'{schema}_{host}_{port}')
+                result = self.set_add('agent_nuclei_asset', f'{schema}_{host}_{port}')
 
             if result is False:
                 logger.info('target %s was processed before, exiting', addresses)
