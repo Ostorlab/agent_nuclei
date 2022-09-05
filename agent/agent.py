@@ -134,7 +134,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 self.report_vulnerability(
                     entry=kb.Entry(
                         title=template_info.get('name'),
-                        risk_rating=NUCLEI_RISK_MAPPING[severity].value,
+                        risk_rating=str(NUCLEI_RISK_MAPPING[severity].value),
                         short_description=template_info.get('description', ''),
                         description=template_info.get('description', ''),
                         recommendation=template_info.get('recommendation', ''),
@@ -150,7 +150,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                     technical_detail=technical_detail,
                     risk_rating=NUCLEI_RISK_MAPPING[severity])
 
-    def _get_references(self, template_info: Dict[str, str]) -> Dict[str, str]:
+    def _get_references(self, template_info: Dict[str, Dict[str, List[str]]]) -> Dict[str, str]:
         """Generate dict references from nuclei references template"""
         references = {}
         cwe_list = template_info.get('classification', {}).get('cwe-id', [])
