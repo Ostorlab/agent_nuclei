@@ -12,8 +12,9 @@ from ostorlab.utils import defintions as utils_definitions
 
 from agent import agent
 
+
 @pytest.fixture
-def scan_message():
+def scan_message() -> message.Message:
     """Creates a dummy message of type v3.asset.ip.v4 to be used by the agent for testing purposes.
     """
     selector = 'v3.asset.ip.v4'
@@ -26,7 +27,7 @@ def scan_message():
 
 
 @pytest.fixture
-def scan_message_network_range():
+def scan_message_network_range() -> message.Message:
     """Creates a dummy message of type v3.asset.ip.v4 to be used by the agent for testing purposes.
     """
     selector = 'v3.asset.ip.v4'
@@ -38,7 +39,7 @@ def scan_message_network_range():
     return message.Message.from_data(selector, data=msg_data)
 
 @pytest.fixture
-def scan_message_link():
+def scan_message_link() -> message.Message:
     """Creates a dummy message of type v3.asset.ip.v4 to be used by the agent for testing purposes.
     """
     selector = 'v3.asset.link'
@@ -49,7 +50,7 @@ def scan_message_link():
     return message.Message.from_data(selector, data=msg_data)
 
 @pytest.fixture
-def nuclei_agent():
+def nuclei_agent() -> agent.AgentNuclei:
     with (pathlib.Path(__file__).parent.parent / 'ostorlab.yaml').open() as yaml_o:
         definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
         settings = runtime_definitions.AgentSettings(
@@ -65,7 +66,7 @@ def nuclei_agent():
 
 
 @pytest.fixture
-def nuclei_agent_args():
+def nuclei_agent_args() -> agent.AgentNuclei:
     with (pathlib.Path(__file__).parent.parent / 'ostorlab.yaml').open() as yaml_o:
         definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
         settings = runtime_definitions.AgentSettings(
