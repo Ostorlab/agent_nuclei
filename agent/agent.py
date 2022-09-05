@@ -150,7 +150,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                     technical_detail=technical_detail,
                     risk_rating=NUCLEI_RISK_MAPPING[severity])
 
-    def _get_references(self, template_info: Dict[str, Dict[str, List[str]]]) -> Dict[str, str]:
+    def _get_references(self, template_info: Dict[str, List[str] | Dict[str, List[str]]]) -> Dict[str, str]:
         """Generate dict references from nuclei references template"""
         references = {}
         cwe_list = template_info.get('classification', {}).get('cwe-id', [])
@@ -182,10 +182,10 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             if len(templates) > 0:
                 self._run_command(targets, templates)
 
-    def _is_target_already_processed(self, message) -> bool:
+    def _is_target_already_processed(self, message: m.Message) -> bool:
         """Checks if the target has already been processed before, relies on the redis server."""
         if message.data.get('url') is not None or message.data.get('name') is not None:
-            unicity_check_key = None
+            unicity_check_key: str = ''
             if message.data.get('url') is not None:
                 target = self._get_target_from_url(message.data['url'])
                 unicity_check_key = f'{target.schema}_{target.name}_{target.port}'
@@ -195,7 +195,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 domain = message.data['name']
                 unicity_check_key = f'{schema}_{domain}_{port}'
 
-            if self.set_add(b'agent_nuclei_asset', unicity_check_key) is True:
+            if self.set_add(b'agent_nuclei_asset', str(unicity_check_key)) is True:
                 return True
             else:
                 logger.info('target %s/ was processed before, exiting', unicity_check_key)
@@ -215,6 +215,9 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             if result is False:
                 logger.info('target %s was processed before, exiting', addresses)
             return result
+        else:
+            logger.error('Unknown target %s', message)
+            return True
 
     def _get_target_from_url(self, url: str) -> Target:
         """Compute schema and port from an URL"""
