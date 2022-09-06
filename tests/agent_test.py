@@ -1,11 +1,19 @@
 """Unittests for nuclei class."""
 from unittest import mock
+from typing import Dict
 
+import requests_mock as rq_mock
+from ostorlab.agent.message import message
 from ostorlab.agent.mixins import agent_report_vulnerability_mixin
+from pytest_mock import plugin
 
+from agent import agent
 
 @mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei.json')
-def testAgentNuclei_whenBinaryAvailable_RunScan(scan_message, nuclei_agent, agent_persist_mock, mocker):
+def testAgentNuclei_whenBinaryAvailable_RunScan(scan_message: message.Message,
+                                                nuclei_agent: agent.AgentNuclei,
+                                                agent_persist_mock: Dict[str | bytes, str | bytes],
+                                                mocker: plugin.MockerFixture) -> None:
     """Tests running the agent and parsing the json output."""
     mocker.patch('subprocess.run', return_value=None)
     mock_report_vulnerability = mocker.patch('agent.agent.AgentNuclei.report_vulnerability', return_value=None)
@@ -19,8 +27,11 @@ def testAgentNuclei_whenBinaryAvailable_RunScan(scan_message, nuclei_agent, agen
 
 
 @mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei.json')
-def testAgentNuclei_whenUrlTemplatesGiven_RunScan(requests_mock, scan_message, nuclei_agent_args, agent_persist_mock,
-                                                  mocker):
+def testAgentNuclei_whenUrlTemplatesGiven_RunScan(requests_mock: rq_mock.mocker.Mocker,
+                                                  scan_message: message.Message,
+                                                  nuclei_agent_args: agent.AgentNuclei,
+                                                  agent_persist_mock: Dict[str | bytes, str | bytes],
+                                                  mocker: plugin.MockerFixture) -> None:
     """Tests running the agent and parsing the json output."""
     run_command_mock = mocker.patch('subprocess.run', return_value=None)
     mocker.patch('os.path.exists', return_value=True)
@@ -40,8 +51,10 @@ def testAgentNuclei_whenUrlTemplatesGiven_RunScan(requests_mock, scan_message, n
 
 
 @mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei.json')
-def testAgentNuclei_whenLinkMessageAndBinaryAvailable_RunScan(scan_message_link, nuclei_agent,
-                                                              agent_persist_mock, mocker):
+def testAgentNuclei_whenLinkMessageAndBinaryAvailable_RunScan(scan_message_link: message.Message,
+                                                              nuclei_agent: agent.AgentNuclei,
+                                                              agent_persist_mock: Dict[str | bytes, str | bytes],
+                                                              mocker: plugin.MockerFixture) -> None:
     """Tests running the agent and parsing the json output."""
     mocker.patch('subprocess.run', return_value=None)
     mock_report_vulnerability = mocker.patch('agent.agent.AgentNuclei.report_vulnerability', return_value=None)
@@ -55,7 +68,11 @@ def testAgentNuclei_whenLinkMessageAndBinaryAvailable_RunScan(scan_message_link,
 
 
 @mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei.json')
-def testAgentNuclei_whenTemplatesProvided(requests_mock, scan_message, nuclei_agent_args, agent_persist_mock, mocker):
+def testAgentNuclei_whenTemplatesProvided(requests_mock: rq_mock.mocker.Mocker,
+                                          scan_message: message.Message,
+                                          nuclei_agent_args: agent.AgentNuclei,
+                                          agent_persist_mock: Dict[str | bytes, str | bytes],
+                                          mocker: plugin.MockerFixture) -> None:
     """Tests running the agent and parsing the json output."""
     run_command_mock = mocker.patch('subprocess.run', return_value=None)
     mocker.patch('os.path.exists', return_value=True)
@@ -72,8 +89,11 @@ def testAgentNuclei_whenTemplatesProvided(requests_mock, scan_message, nuclei_ag
 
 
 @mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei.json')
-def testAgentNuclei_whenMessageIsIpRange_scanMultipleTargets(requests_mock, scan_message_network_range, nuclei_agent,
-                                                             agent_persist_mock, mocker):
+def testAgentNuclei_whenMessageIsIpRange_scanMultipleTargets(requests_mock: rq_mock.mocker.Mocker,
+                                                             scan_message_network_range: message.Message,
+                                                             nuclei_agent: agent.AgentNuclei,
+                                                             agent_persist_mock: Dict[str | bytes, str | bytes],
+                                                             mocker: plugin.MockerFixture) -> None:
     """Tests running the agent and parsing the json output."""
     run_command_mock = mocker.patch('subprocess.run', return_value=None)
     mocker.patch('os.path.exists', return_value=True)
@@ -86,3 +106,21 @@ def testAgentNuclei_whenMessageIsIpRange_scanMultipleTargets(requests_mock, scan
     assert '209.235.136.113' in run_command_args[0].args[0]
     assert '209.235.136.126' in run_command_args[0].args[0]
     assert '209.235.136.126' in run_command_args[0].args[0]
+
+
+@mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei.json')
+def testAgentNuclei_whenMessageIsDomain_scanMultipleTargets(requests_mock: rq_mock.mocker.Mocker,
+                                                             scan_message_domain: message.Message,
+                                                             nuclei_agent: agent.AgentNuclei,
+                                                             agent_persist_mock: Dict[str | bytes, str | bytes],
+                                                             mocker: plugin.MockerFixture) -> None:
+    """Tests running the agent and parsing the json output."""
+    run_command_mock = mocker.patch('subprocess.run', return_value=None)
+    mocker.patch('os.path.exists', return_value=True)
+    requests_mock.get('https://raw.githubusercontent.com/Ostorlab/main/templates/CVE1.yaml', content=b'test1')
+    requests_mock.get('https://raw.githubusercontent.com/Ostorlab/main/templates/CVE2.yaml', content=b'test2')
+    mocker.patch('agent.agent.AgentNuclei.report_vulnerability', return_value=None)
+    nuclei_agent.process(scan_message_domain)
+    run_command_mock.assert_called()
+    run_command_args = run_command_mock.call_args_list
+    assert 'https://example.com:443' in run_command_args[0].args[0]
