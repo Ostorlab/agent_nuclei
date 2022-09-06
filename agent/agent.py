@@ -79,11 +79,12 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             return
 
         targets = self._prepare_targets(message)
-        templates_urls = self.args.get('template_urls')
-        if templates_urls is not None:
-            self._run_templates(templates_urls, targets)
-        if self.args.get('use_default_templates', True):
-            self._run_command(targets)
+        if len(targets) > 0:
+            templates_urls = self.args.get('template_urls')
+            if templates_urls is not None:
+                self._run_templates(templates_urls, targets)
+            if self.args.get('use_default_templates', True):
+                self._run_command(targets)
         logger.info('Done processing message of selector : %s', message.selector)
 
     def _parse_output(self) -> None:
@@ -150,7 +151,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                     technical_detail=technical_detail,
                     risk_rating=NUCLEI_RISK_MAPPING[severity])
 
-    def _get_references(self, template_info: Dict[str, List[str] | Dict[str, List[str]]]) -> Dict[str, str]:
+    def _get_references(self, template_info: Dict[str, Dict[str, List[str]]]) -> Dict[str, str]:
         """Generate dict references from nuclei references template"""
         references = {}
         cwe_list = template_info.get('classification', {}).get('cwe-id', [])
@@ -164,7 +165,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 value_link = f'https://cve.mitre.org/cgi-bin/cvename.cgi?name={value}'
                 references[value] = value_link
         if template_info.get('reference') is not None:
-            for value in template_info.get('reference'):
+            for value in template_info['reference']:
                 references[value] = value
         return references
 
@@ -201,19 +202,19 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 logger.info('target %s/ was processed before, exiting', unicity_check_key)
                 return False
         elif message.data.get('host') is not None:
-            host = message.data.get('host')
+            host = str(message.data.get('host'))
             mask = message.data.get('mask')
             schema = self._get_schema(message)
             port = self._get_port(message)
             if mask is not None:
                 addresses = ipaddress.ip_network(f'{host}/{mask}')
                 result = self.add_ip_network('agent_whois_ip_asset', addresses, lambda net: f'{schema}_{net}_{port}')
+                if result is False:
+                    logger.info('target %s was processed before, exiting', addresses)
             else:
-                addresses = host
                 result = self.set_add('agent_nuclei_asset', f'{schema}_{host}_{port}')
-
-            if result is False:
-                logger.info('target %s was processed before, exiting', addresses)
+                if result is False:
+                    logger.info('target %s was processed before, exiting', host)
             return result
         else:
             logger.error('Unknown target %s', message)
@@ -227,24 +228,25 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
         port = 0
         if len(parsed_url.netloc.split(':')) > 1:
             domain_name = parsed_url.netloc.split(':')[0]
-            port = parsed_url.netloc.split(':')[-1]
-        port = int(port) or SCHEME_TO_PORT.get(schema) or self.args.get('port')
+            if len(parsed_url.netloc.split(':')) > 0 and parsed_url.netloc.split(':')[-1] != '':
+                port = int(parsed_url.netloc.split(':')[-1])
+        port = port or int(str(SCHEME_TO_PORT.get(str(schema)))) or int(str(self.args.get('port')))
         target = Target(name=domain_name, schema=schema, port=port)
         return target
 
     def _get_port(self, message: m.Message) -> int:
         """Returns the port to be used for the target."""
         if message.data.get('port') is not None:
-            return message.data['port']
+            return int(message.data['port'])
         else:
-            return self.args.get('port')
+            return int(str(self.args.get('port')))
 
     def _get_schema(self, message: m.Message) -> str:
         """Returns the schema to be used for the target."""
         if message.data.get('schema') is not None:
-            return message.data['schema']
+            return str(message.data['schema'])
         elif message.data.get('protocol') is not None:
-            return message.data['protocol']
+            return str(message.data['protocol'])
         elif self.args.get('https') is True:
             return 'https'
         else:
@@ -254,7 +256,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
         """Prepare targets based on type, if a domain name is provided, port and protocol are collected from the config.
         """
         if message.data.get('host') is not None:
-            host = message.data.get('host')
+            host = str(message.data.get('host'))
             if message.data.get('mask') is None:
                 ip_network = ipaddress.ip_network(host)
             else:
@@ -267,9 +269,11 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             port = self.args.get('port')
             return [f'{schema}://{domain_name}:{port}']
         elif message.data.get('url') is not None:
-            return [message.data.get('url')]
+            return [str(message.data.get('url'))]
+        else:
+            return []
 
-    def _run_command(self, targets: List[str], templates: List[str] = None) -> None:
+    def _run_command(self, targets: List[str], templates: List[str] | None = None) -> None:
         """Run Nuclei command on the provided target using defined or default templates"""
         command = ['/nuclei/nuclei']
         for target in targets:
