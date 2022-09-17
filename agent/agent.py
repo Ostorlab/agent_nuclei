@@ -43,6 +43,7 @@ NUCLEI_RISK_MAPPING = {
 }
 
 STORAGE_NAME = 'agent_nuclei'
+MAX_TARGETS_COMMAND_LINE = 1024
 
 
 @dataclasses.dataclass
@@ -207,7 +208,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             schema = self._get_schema(message)
             port = self._get_port(message)
             if mask is not None:
-                addresses = ipaddress.ip_network(f'{host}/{mask}')
+                addresses = ipaddress.ip_network(f'{host}/{mask}', strict=False)
                 result = self.add_ip_network('agent_nuclei_asset', addresses, lambda net: f'{schema}_{net}_{port}')
                 if result is False:
                     logger.info('target %s was processed before, exiting', addresses)
@@ -261,7 +262,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 ip_network = ipaddress.ip_network(host)
             else:
                 mask = message.data.get('mask')
-                ip_network = ipaddress.ip_network(f'{host}/{mask}')
+                ip_network = ipaddress.ip_network(f'{host}/{mask}', strict=False)
             return [str(h) for h in ip_network.hosts()]
         elif message.data.get('name') is not None:
             domain_name = message.data.get('name')
@@ -275,18 +276,21 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
 
     def _run_command(self, targets: List[str], templates: List[str] | None = None) -> None:
         """Run Nuclei command on the provided target using defined or default templates"""
-        command = ['/nuclei/nuclei']
-        for target in targets:
-            command.extend(['-u', target])
-        command.extend(['-json', '-irr', '-silent', '-o', OUTPUT_PATH])
-        if templates is not None:
-            for template in templates:
-                if path.exists(template):
-                    command.extend(['-t', template])
+        chunks = [targets[x:x + MAX_TARGETS_COMMAND_LINE] for x in range(0, len(targets), MAX_TARGETS_COMMAND_LINE)]
 
-        subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        for chunk in chunks:
+            command = ['/nuclei/nuclei']
+            for item in chunk:
+                command.extend(['-u', item])
+            command.extend(['-json', '-irr', '-silent', '-o', OUTPUT_PATH])
+            if templates is not None:
+                for template in templates:
+                    if path.exists(template):
+                        command.extend(['-t', template])
 
-        self._parse_output()
+            subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+            self._parse_output()
 
 
 if __name__ == '__main__':
