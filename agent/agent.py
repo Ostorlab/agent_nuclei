@@ -43,7 +43,7 @@ NUCLEI_RISK_MAPPING = {
 }
 
 STORAGE_NAME = 'agent_nuclei'
-MAX_TARGETS_COMMAND_LINE = 1024
+MAX_TARGETS_COMMAND_LINE = 10
 
 
 @dataclasses.dataclass
