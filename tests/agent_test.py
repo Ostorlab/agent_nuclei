@@ -105,8 +105,7 @@ def testAgentNuclei_whenMessageIsIpRange_scanMultipleTargets(requests_mock: rq_m
     run_command_mock.assert_called()
     run_command_args = run_command_mock.call_args_list
     assert '209.235.136.113' in run_command_args[0].args[0]
-    assert '209.235.136.126' in run_command_args[0].args[0]
-    assert '209.235.136.126' in run_command_args[0].args[0]
+    assert '209.235.136.121' in run_command_args[0].args[0]
 
 
 @mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei.json')
@@ -142,6 +141,5 @@ def testAgentNuclei_whenMessageIsLargeIpRange_scanMultipleTargets(requests_mock:
     nuclei_agent.process(scan_message_large_network_range)
     run_command_mock.assert_called()
     run_command_args = run_command_mock.call_args_list
-    assert '209.235.136.113' in run_command_args[34].args[0]
-    assert '209.235.136.126' in run_command_args[34].args[0]
-    assert '209.235.136.126' in run_command_args[34].args[0]
+    assert '209.235.0.1' in run_command_args[0].args[0]
+    assert '209.235.0.15' in run_command_args[1].args[0]
