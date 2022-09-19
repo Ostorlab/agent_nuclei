@@ -205,15 +205,13 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
         elif message.data.get('host') is not None:
             host = str(message.data.get('host'))
             mask = message.data.get('mask')
-            schema = self._get_schema(message)
-            port = self._get_port(message)
             if mask is not None:
                 addresses = ipaddress.ip_network(f'{host}/{mask}', strict=False)
-                result = self.add_ip_network('agent_nuclei_asset', addresses, lambda net: f'{schema}_{net}_{port}')
+                result = self.add_ip_network('agent_nuclei_asset', addresses)
                 if result is False:
                     logger.info('target %s was processed before, exiting', addresses)
             else:
-                result = self.set_add('agent_nuclei_asset', f'{schema}_{host}_{port}')
+                result = self.set_add('agent_nuclei_asset', host)
                 if result is False:
                     logger.info('target %s was processed before, exiting', host)
             return result
