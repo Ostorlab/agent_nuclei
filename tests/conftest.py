@@ -70,7 +70,7 @@ def scan_message_domain() -> message.Message:
     """
     selector = 'v3.asset.domain_name'
     msg_data = {
-        'name': 'example.com'
+        'name': 'apple.com'
     }
     return message.Message.from_data(selector, data=msg_data)
 
@@ -80,6 +80,22 @@ def nuclei_agent() -> agent.AgentNuclei:
     with (pathlib.Path(__file__).parent.parent / 'ostorlab.yaml').open() as yaml_o:
         definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
         definition.args = [
+            {
+                'name': "use_default_templates",
+                'type': "boolean",
+                'value': True
+
+            },
+            {
+                'name': "https",
+                'type': "boolean",
+                'value': True
+            },
+            {
+                'name': "port",
+                'type': "number",
+                'value': 443
+            },
             {
                 'name': 'scope_urls_regex',
                 'value': '([a-zA-Z]+://apple.com/?.*)',
@@ -111,7 +127,8 @@ def nuclei_agent_args() -> agent.AgentNuclei:
                     name='template_urls',
                     type='array',
                     value=json.dumps(['https://raw.githubusercontent.com/Ostorlab/main/templates/CVE1.yaml',
-                                      'https://raw.githubusercontent.com/Ostorlab/main/templates/CVE2.yaml']).encode())],
+                                      'https://raw.githubusercontent.com/Ostorlab/main/templates/CVE2.yaml'])
+                    .encode())],
             healthcheck_port=random.randint(5000, 6000),
             redis_url='redis://guest:guest@localhost:6379')
 

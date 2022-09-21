@@ -123,7 +123,7 @@ def testAgentNuclei_whenMessageIsDomain_scanMultipleTargets(requests_mock: rq_mo
     nuclei_agent.process(scan_message_domain)
     run_command_mock.assert_called()
     run_command_args = run_command_mock.call_args_list
-    assert 'https://example.com' in run_command_args[0].args[0]
+    assert 'https://apple.com' in run_command_args[0].args[0]
 
 
 @mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei.json')
