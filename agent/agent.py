@@ -7,7 +7,7 @@ from urllib import parse
 import subprocess
 import tempfile
 from os import path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 import re
 
 import dataclasses
@@ -300,7 +300,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
 
             self._parse_output()
 
-    def _should_process_url(self, scope_urls_regex: str, url: str) -> bool:
+    def _should_process_url(self, scope_urls_regex: Optional[Any], url: Optional[Any]) -> bool:
         if not scope_urls_regex:
             return True
         link_in_scan_domain = re.match(scope_urls_regex, url) is not None
