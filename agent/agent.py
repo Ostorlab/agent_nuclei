@@ -66,7 +66,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
         agent.Agent.__init__(self, agent_definition, agent_settings)
         agent_persist_mixin.AgentPersistMixin.__init__(self, agent_settings)
         agent_report_vulnerability_mixin.AgentReportVulnMixin.__init__(self)
-        self._scope_urls_regex = self.args.get('scope_urls_regex')
+        self._scope_urls_regex: Optional[str] = self.args.get('scope_urls_regex')
 
     def process(self, message: m.Message) -> None:
         """Starts Nuclei scan wait for the scan to finish,
@@ -300,8 +300,8 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
 
             self._parse_output()
 
-    def _should_process_url(self, scope_urls_regex: str, url: str) -> bool:
-        if not scope_urls_regex:
+    def _should_process_url(self, scope_urls_regex: Optional[str], url: str) -> bool:
+        if scope_urls_regex is None:
             return True
         link_in_scan_domain = re.match(scope_urls_regex, url) is not None
         if not link_in_scan_domain:
