@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 from os import path
 from typing import Dict, List, Optional
+import re
 
 import dataclasses
 import requests
@@ -42,6 +43,22 @@ NUCLEI_RISK_MAPPING = {
     'info': agent_report_vulnerability_mixin.RiskRating.INFO,
 }
 
+EXT_BLACKLIST = [
+    r'.*\.js',
+    r'.*\.css',
+    r'.*\.pdf',
+    r'.*\.png',
+    r'.*\.jpeg',
+    r'.*\.jpg',
+    r'.*\.webp',
+    r'.*\.gif',
+    r'.*\.woff',
+    r'.*\.woff2',
+    r'.*\.tiff',
+    r'.*\.txt',
+    r'.*\.csv',
+]
+
 STORAGE_NAME = 'agent_nuclei'
 MAX_TARGETS_COMMAND_LINE = 10
 
@@ -64,6 +81,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
         agent.Agent.__init__(self, agent_definition, agent_settings)
         agent_persist_mixin.AgentPersistMixin.__init__(self, agent_settings)
         agent_report_vulnerability_mixin.AgentReportVulnMixin.__init__(self)
+        self._scope_urls_regex = self.args.get('scope_urls_regex')
 
     def process(self, message: m.Message) -> None:
         """Starts Nuclei scan wait for the scan to finish,
@@ -266,9 +284,14 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             domain_name = message.data.get('name')
             schema = self._get_schema(message)
             port = self.args.get('port')
-            return [f'{schema}://{domain_name}:{port}']
-        elif message.data.get('url') is not None:
-            return [str(message.data.get('url'))]
+            domain = f'{schema}://{domain_name}:{port}'
+            if self._should_process_url(self._scope_urls_regex, domain):
+                return [domain]
+            return []
+        elif (url_temp := message.data.get('url')) is not None:
+            if self._should_process_url(self._scope_urls_regex, str(url_temp)):
+                return [url_temp]
+            return []
         else:
             return []
 
@@ -289,6 +312,17 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
             self._parse_output()
+
+    def _should_process_url(self, scope_urls_regex: str, url: str) -> bool:
+        if any(re.match(p, parse.urlparse(url).path) for p in EXT_BLACKLIST):
+            logger.info('link url %s matches blacklist', url)
+            return False
+        if not scope_urls_regex:
+            return True
+        link_in_scan_domain = re.match(scope_urls_regex, url) is not None
+        if not link_in_scan_domain:
+            logger.warning('link url %s is not in domain %s', url, scope_urls_regex)
+        return link_in_scan_domain
 
 
 if __name__ == '__main__':
