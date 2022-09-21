@@ -300,7 +300,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
 
             self._parse_output()
 
-    def _should_process_url(self, scope_urls_regex: Optional[Any], url: Optional[Any]) -> bool:
+    def _should_process_url(self, scope_urls_regex: str, url: str) -> bool:
         if not scope_urls_regex:
             return True
         link_in_scan_domain = re.match(scope_urls_regex, url) is not None
