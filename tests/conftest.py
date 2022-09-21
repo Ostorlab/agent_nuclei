@@ -81,19 +81,19 @@ def nuclei_agent() -> agent.AgentNuclei:
         definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
         definition.args = [
             {
-                'name': "use_default_templates",
-                'type': "boolean",
+                'name': 'use_default_templates',
+                'type': 'boolean',
                 'value': True
 
             },
             {
-                'name': "https",
-                'type': "boolean",
+                'name': 'https',
+                'type': 'boolean',
                 'value': True
             },
             {
-                'name': "port",
-                'type': "number",
+                'name': 'port',
+                'type': 'number',
                 'value': 443
             },
             {
