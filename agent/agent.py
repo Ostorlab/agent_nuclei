@@ -7,7 +7,7 @@ from urllib import parse
 import subprocess
 import tempfile
 from os import path
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional
 import re
 
 import dataclasses
