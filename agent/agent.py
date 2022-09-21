@@ -43,21 +43,6 @@ NUCLEI_RISK_MAPPING = {
     'info': agent_report_vulnerability_mixin.RiskRating.INFO,
 }
 
-EXT_BLACKLIST = [
-    r'.*\.js',
-    r'.*\.css',
-    r'.*\.pdf',
-    r'.*\.png',
-    r'.*\.jpeg',
-    r'.*\.jpg',
-    r'.*\.webp',
-    r'.*\.gif',
-    r'.*\.woff',
-    r'.*\.woff2',
-    r'.*\.tiff',
-    r'.*\.txt',
-    r'.*\.csv',
-]
 
 STORAGE_NAME = 'agent_nuclei'
 MAX_TARGETS_COMMAND_LINE = 10
@@ -284,9 +269,11 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             domain_name = message.data.get('name')
             schema = self._get_schema(message)
             port = self.args.get('port')
-            domain = f'{schema}://{domain_name}:{port}'
-            if self._should_process_url(self._scope_urls_regex, domain):
-                return [domain]
+            url = f'{schema}://{domain_name}'
+            if (schema == 'https' and port != 443) or (schema == 'http' and port != 80):
+                url = f'{url}:{port}'
+            if self._should_process_url(self._scope_urls_regex, url):
+                return [url]
             return []
         elif (url_temp := message.data.get('url')) is not None:
             if self._should_process_url(self._scope_urls_regex, str(url_temp)):
@@ -314,9 +301,6 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             self._parse_output()
 
     def _should_process_url(self, scope_urls_regex: str, url: str) -> bool:
-        if any(re.match(p, parse.urlparse(url).path) for p in EXT_BLACKLIST):
-            logger.info('link url %s matches blacklist', url)
-            return False
         if not scope_urls_regex:
             return True
         link_in_scan_domain = re.match(scope_urls_regex, url) is not None

@@ -97,4 +97,4 @@ args:
     value: 443
   - name: "scope_urls_regex"
     type: "string"
-    description: "Regular expression to define crawling scope."
+    description: "to define scanning scope."
