@@ -268,12 +268,14 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
         elif (domain_name := message.data.get('name')) is not None:
             schema = self._get_schema(message)
             port = self.args.get('port')
-            if schema == 'https' and port != 443:
+            if schema == 'https' and port not in [443, None]:
                 url = f'https://{domain_name}:{port}'
             elif schema == 'https':
                 url = f'https://{domain_name}'
             elif port == 80:
                 url = f'http://{domain_name}'
+            elif port is None:
+                url = f'{schema}://{domain_name}'
             else:
                 url = f'{schema}://{domain_name}:{port}'
 

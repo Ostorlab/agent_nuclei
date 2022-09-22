@@ -54,7 +54,7 @@ def scan_message_large_network_range() -> message.Message:
 
 @pytest.fixture
 def scan_message_link() -> message.Message:
-    """Creates a dummy message of type v3.asset.ip.v4 to be used by the agent for testing purposes.
+    """Creates a dummy message of type v3.asset.link to be used by the agent for testing purposes.
     """
     selector = 'v3.asset.link'
     msg_data = {
@@ -65,7 +65,7 @@ def scan_message_link() -> message.Message:
 
 @pytest.fixture
 def scan_message_link_2() -> message.Message:
-    """Creates a dummy message of type v3.asset.ip.v4 to be used by the agent for testing purposes.
+    """Creates a dummy message of type v3.asset.link to be used by the agent for testing purposes.
     """
     selector = 'v3.asset.link'
     msg_data = {
@@ -76,7 +76,7 @@ def scan_message_link_2() -> message.Message:
 
 @pytest.fixture
 def scan_message_domain() -> message.Message:
-    """Creates a dummy message of type v3.asset.ip.v4 to be used by the agent for testing purposes.
+    """Creates a dummy message of type v3.asset.domain_name to be used by the agent for testing purposes.
     """
     selector = 'v3.asset.domain_name'
     msg_data = {
@@ -86,7 +86,7 @@ def scan_message_domain() -> message.Message:
 
 @pytest.fixture
 def scan_message_domain_2() -> message.Message:
-    """Creates a dummy message of type v3.asset.ip.v4 to be used by the agent for testing purposes.
+    """Creates a dummy message of type v3.asset.domain_name to be used by the agent for testing purposes.
     """
     selector = 'v3.asset.domain_name'
     msg_data = {
