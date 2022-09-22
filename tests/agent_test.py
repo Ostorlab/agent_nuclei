@@ -52,20 +52,27 @@ def testAgentNuclei_whenUrlTemplatesGiven_RunScan(requests_mock: rq_mock.mocker.
 
 
 @mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei.json')
-def testAgentNuclei_whenLinkMessageAndBinaryAvailable_RunScan(scan_message_link: message.Message,
-                                                              nuclei_agent: agent.AgentNuclei,
-                                                              agent_persist_mock: Dict[str | bytes, str | bytes],
-                                                              mocker: plugin.MockerFixture) -> None:
+def testAgentNuclei_whenLinkMessageGiven_NotScan(scan_message_link_2: message.Message,
+                                            nuclei_agent: agent.AgentNuclei,
+                                            agent_persist_mock: Dict[str | bytes, str | bytes],
+                                            mocker: plugin.MockerFixture) -> None:
     """Tests running the agent and parsing the json output."""
-    mocker.patch('subprocess.run', return_value=None)
-    mock_report_vulnerability = mocker.patch('agent.agent.AgentNuclei.report_vulnerability', return_value=None)
-    nuclei_agent.process(scan_message_link)
-    mock_report_vulnerability.assert_called_once()
-    assert mock_report_vulnerability.call_args.kwargs['entry'].cvss_v3_vector \
-           == 'CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:N'
-    assert """Matched : `ats` at""" in mock_report_vulnerability.call_args.kwargs['technical_detail']
-    assert 'Author' not in mock_report_vulnerability.call_args.kwargs['technical_detail']
-    assert mock_report_vulnerability.call_args.kwargs['risk_rating'] == agent_report_vulnerability_mixin.RiskRating.INFO
+    run_command_mock = mocker.patch('subprocess.run', return_value=None)
+    mocker.patch('os.path.exists', return_value=True)
+    nuclei_agent.process(scan_message_link_2)
+    run_command_mock.assert_not_called()
+
+
+@mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei.json')
+def testAgentNuclei_whenDomainNameGiven_NotScan(scan_message_domain_2: message.Message,
+                                           nuclei_agent: agent.AgentNuclei,
+                                           agent_persist_mock: Dict[str | bytes, str | bytes],
+                                           mocker: plugin.MockerFixture) -> None:
+    """Tests running the agent and parsing the json output."""
+    run_command_mock = mocker.patch('subprocess.run', return_value=None)
+    mocker.patch('os.path.exists', return_value=True)
+    nuclei_agent.process(scan_message_domain_2)
+    run_command_mock.assert_not_called()
 
 
 @mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei.json')

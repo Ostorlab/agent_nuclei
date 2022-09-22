@@ -43,7 +43,6 @@ NUCLEI_RISK_MAPPING = {
     'info': agent_report_vulnerability_mixin.RiskRating.INFO,
 }
 
-
 STORAGE_NAME = 'agent_nuclei'
 MAX_TARGETS_COMMAND_LINE = 10
 
@@ -265,16 +264,21 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 mask = message.data.get('mask')
                 ip_network = ipaddress.ip_network(f'{host}/{mask}', strict=False)
             return [str(h) for h in ip_network.hosts()]
-        elif message.data.get('name') is not None:
-            domain_name = message.data.get('name')
+
+        elif (domain_name := message.data.get('name')) is not None:
             schema = self._get_schema(message)
             port = self.args.get('port')
-            url = f'{schema}://{domain_name}'
-            if (schema == 'https' and port != 443) or (schema == 'http' and port != 80):
-                url = f'{url}:{port}'
-            if self._should_process_url(self._scope_urls_regex, url):
-                return [url]
-            return []
+            if schema == 'https' and port != 443:
+                url = f'https://{domain_name}:{port}'
+            elif schema == 'https':
+                url = f'https://{domain_name}'
+            elif port == 80:
+                url = f'http://{domain_name}'
+            else:
+                url = f'{schema}://{domain_name}:{port}'
+
+            return [url] if self._should_process_url(self._scope_urls_regex, url) else []
+
         elif (url_temp := message.data.get('url')) is not None:
             if self._should_process_url(self._scope_urls_regex, str(url_temp)):
                 return [url_temp]

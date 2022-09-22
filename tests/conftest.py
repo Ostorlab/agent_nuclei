@@ -63,6 +63,16 @@ def scan_message_link() -> message.Message:
     }
     return message.Message.from_data(selector, data=msg_data)
 
+@pytest.fixture
+def scan_message_link_2() -> message.Message:
+    """Creates a dummy message of type v3.asset.ip.v4 to be used by the agent for testing purposes.
+    """
+    selector = 'v3.asset.link'
+    msg_data = {
+        'url': 'https://ostorlab.co',
+        'method': 'GET'
+    }
+    return message.Message.from_data(selector, data=msg_data)
 
 @pytest.fixture
 def scan_message_domain() -> message.Message:
@@ -74,34 +84,21 @@ def scan_message_domain() -> message.Message:
     }
     return message.Message.from_data(selector, data=msg_data)
 
+@pytest.fixture
+def scan_message_domain_2() -> message.Message:
+    """Creates a dummy message of type v3.asset.ip.v4 to be used by the agent for testing purposes.
+    """
+    selector = 'v3.asset.domain_name'
+    msg_data = {
+        'name': 'ostorlab.co'
+    }
+    return message.Message.from_data(selector, data=msg_data)
 
 @pytest.fixture
 def nuclei_agent() -> agent.AgentNuclei:
     with (pathlib.Path(__file__).parent.parent / 'ostorlab.yaml').open() as yaml_o:
         definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
-        definition.args = [
-            {
-                'name': 'use_default_templates',
-                'type': 'boolean',
-                'value': True
-
-            },
-            {
-                'name': 'https',
-                'type': 'boolean',
-                'value': True
-            },
-            {
-                'name': 'port',
-                'type': 'number',
-                'value': 443
-            },
-            {
-                'name': 'scope_urls_regex',
-                'value': '([a-zA-Z]+://apple.com/?.*)',
-                'type': 'string'
-            }
-        ]
+        definition.args[4]['value'] = '([a-zA-Z]+://apple.com/?.*)'
         settings = runtime_definitions.AgentSettings(
             key='agent/ostorlab/nuclei',
             bus_url='NA',
