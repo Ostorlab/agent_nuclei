@@ -82,6 +82,9 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             return
 
         targets = self._prepare_targets(message)
+        # Filter out all the target that are out of scope.
+        targets = [t for t in targets if self._should_process_target(self._scope_urls_regex, t) is True]
+
         if len(targets) > 0:
             templates_urls = self.args.get('template_urls')
             if templates_urls is not None:
@@ -279,12 +282,10 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             else:
                 url = f'{schema}://{domain_name}:{port}'
 
-            return [url] if self._should_process_target(self._scope_urls_regex, url) else []
+            return [url]
 
         elif (url_temp := message.data.get('url')) is not None:
-            if self._should_process_target(self._scope_urls_regex, str(url_temp)):
-                return [url_temp]
-            return []
+            return [url_temp]
         else:
             return []
 
