@@ -279,10 +279,10 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             else:
                 url = f'{schema}://{domain_name}:{port}'
 
-            return [url] if self._should_process_url(self._scope_urls_regex, url) else []
+            return [url] if self._should_process_target(self._scope_urls_regex, url) else []
 
         elif (url_temp := message.data.get('url')) is not None:
-            if self._should_process_url(self._scope_urls_regex, str(url_temp)):
+            if self._should_process_target(self._scope_urls_regex, str(url_temp)):
                 return [url_temp]
             return []
         else:
@@ -306,7 +306,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
 
             self._parse_output()
 
-    def _should_process_url(self, scope_urls_regex: Optional[str], url: str) -> bool:
+    def _should_process_target(self, scope_urls_regex: Optional[str], url: str) -> bool:
         if scope_urls_regex is None:
             return True
         link_in_scan_domain = re.match(scope_urls_regex, url) is not None
