@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 from os import path
 from typing import Dict, List, Optional
+import re
 
 import dataclasses
 import requests
@@ -64,6 +65,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
         agent.Agent.__init__(self, agent_definition, agent_settings)
         agent_persist_mixin.AgentPersistMixin.__init__(self, agent_settings)
         agent_report_vulnerability_mixin.AgentReportVulnMixin.__init__(self)
+        self._scope_urls_regex: Optional[str] = self.args.get('scope_urls_regex')
 
     def process(self, message: m.Message) -> None:
         """Starts Nuclei scan wait for the scan to finish,
@@ -80,6 +82,9 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             return
 
         targets = self._prepare_targets(message)
+        # Filter out all the target that are out of scope.
+        targets = [t for t in targets if self._should_process_target(self._scope_urls_regex, t) is True]
+
         if len(targets) > 0:
             templates_urls = self.args.get('template_urls')
             if templates_urls is not None:
@@ -262,13 +267,25 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 mask = message.data.get('mask')
                 ip_network = ipaddress.ip_network(f'{host}/{mask}', strict=False)
             return [str(h) for h in ip_network.hosts()]
-        elif message.data.get('name') is not None:
-            domain_name = message.data.get('name')
+
+        elif (domain_name := message.data.get('name')) is not None:
             schema = self._get_schema(message)
             port = self.args.get('port')
-            return [f'{schema}://{domain_name}:{port}']
-        elif message.data.get('url') is not None:
-            return [str(message.data.get('url'))]
+            if schema == 'https' and port not in [443, None]:
+                url = f'https://{domain_name}:{port}'
+            elif schema == 'https':
+                url = f'https://{domain_name}'
+            elif port == 80:
+                url = f'http://{domain_name}'
+            elif port is None:
+                url = f'{schema}://{domain_name}'
+            else:
+                url = f'{schema}://{domain_name}:{port}'
+
+            return [url]
+
+        elif (url_temp := message.data.get('url')) is not None:
+            return [url_temp]
         else:
             return []
 
@@ -289,6 +306,14 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
             self._parse_output()
+
+    def _should_process_target(self, scope_urls_regex: Optional[str], url: str) -> bool:
+        if scope_urls_regex is None:
+            return True
+        link_in_scan_domain = re.match(scope_urls_regex, url) is not None
+        if not link_in_scan_domain:
+            logger.warning('link url %s is not in domain %s', url, scope_urls_regex)
+        return link_in_scan_domain
 
 
 if __name__ == '__main__':
