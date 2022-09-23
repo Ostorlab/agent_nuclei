@@ -63,6 +63,7 @@ def scan_message_link() -> message.Message:
     }
     return message.Message.from_data(selector, data=msg_data)
 
+
 @pytest.fixture
 def scan_message_link_2() -> message.Message:
     """Creates a dummy message of type v3.asset.link to be used by the agent for testing purposes.
@@ -74,6 +75,7 @@ def scan_message_link_2() -> message.Message:
     }
     return message.Message.from_data(selector, data=msg_data)
 
+
 @pytest.fixture
 def scan_message_domain() -> message.Message:
     """Creates a dummy message of type v3.asset.domain_name to be used by the agent for testing purposes.
@@ -83,6 +85,7 @@ def scan_message_domain() -> message.Message:
         'name': 'apple.com'
     }
     return message.Message.from_data(selector, data=msg_data)
+
 
 @pytest.fixture
 def scan_message_domain_2() -> message.Message:
@@ -94,11 +97,28 @@ def scan_message_domain_2() -> message.Message:
     }
     return message.Message.from_data(selector, data=msg_data)
 
+
 @pytest.fixture
 def nuclei_agent() -> agent.AgentNuclei:
     with (pathlib.Path(__file__).parent.parent / 'ostorlab.yaml').open() as yaml_o:
         definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
         definition.args[4]['value'] = '([a-zA-Z]+://apple.com/?.*)'
+        settings = runtime_definitions.AgentSettings(
+            key='agent/ostorlab/nuclei',
+            bus_url='NA',
+            bus_exchange_topic='NA',
+            args=[],
+            healthcheck_port=random.randint(5000, 6000),
+            redis_url='redis://guest:guest@localhost:6379')
+
+        agent_object = agent.AgentNuclei(definition, settings)
+        return agent_object
+
+
+@pytest.fixture
+def nuclei_agent_no_url_scope() -> agent.AgentNuclei:
+    with (pathlib.Path(__file__).parent.parent / 'ostorlab.yaml').open() as yaml_o:
+        definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
         settings = runtime_definitions.AgentSettings(
             key='agent/ostorlab/nuclei',
             bus_url='NA',

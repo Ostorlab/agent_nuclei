@@ -12,13 +12,13 @@ from agent import agent
 
 @mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei.json')
 def testAgentNuclei_whenBinaryAvailable_RunScan(scan_message: message.Message,
-                                                nuclei_agent: agent.AgentNuclei,
+                                                nuclei_agent_no_url_scope: agent.AgentNuclei,
                                                 agent_persist_mock: Dict[str | bytes, str | bytes],
                                                 mocker: plugin.MockerFixture) -> None:
     """Tests running the agent and parsing the json output."""
     mocker.patch('subprocess.run', return_value=None)
     mock_report_vulnerability = mocker.patch('agent.agent.AgentNuclei.report_vulnerability', return_value=None)
-    nuclei_agent.process(scan_message)
+    nuclei_agent_no_url_scope.process(scan_message)
     mock_report_vulnerability.assert_called_once()
     assert mock_report_vulnerability.call_args.kwargs['entry'].cvss_v3_vector \
            == 'CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:N'
@@ -99,7 +99,7 @@ def testAgentNuclei_whenTemplatesProvided(requests_mock: rq_mock.mocker.Mocker,
 @mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei.json')
 def testAgentNuclei_whenMessageIsIpRange_scanMultipleTargets(requests_mock: rq_mock.mocker.Mocker,
                                                              scan_message_network_range: message.Message,
-                                                             nuclei_agent: agent.AgentNuclei,
+                                                             nuclei_agent_no_url_scope: agent.AgentNuclei,
                                                              agent_persist_mock: Dict[str | bytes, str | bytes],
                                                              mocker: plugin.MockerFixture) -> None:
     """Tests running the agent and parsing the json output."""
@@ -108,7 +108,7 @@ def testAgentNuclei_whenMessageIsIpRange_scanMultipleTargets(requests_mock: rq_m
     requests_mock.get('https://raw.githubusercontent.com/Ostorlab/main/templates/CVE1.yaml', content=b'test1')
     requests_mock.get('https://raw.githubusercontent.com/Ostorlab/main/templates/CVE2.yaml', content=b'test2')
     mocker.patch('agent.agent.AgentNuclei.report_vulnerability', return_value=None)
-    nuclei_agent.process(scan_message_network_range)
+    nuclei_agent_no_url_scope.process(scan_message_network_range)
     run_command_mock.assert_called()
     run_command_args = run_command_mock.call_args_list
     assert '209.235.136.113' in run_command_args[0].args[0]
@@ -136,7 +136,7 @@ def testAgentNuclei_whenMessageIsDomain_scanMultipleTargets(requests_mock: rq_mo
 @mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei.json')
 def testAgentNuclei_whenMessageIsLargeIpRange_scanMultipleTargets(requests_mock: rq_mock.mocker.Mocker,
                                                                   scan_message_large_network_range: message.Message,
-                                                                  nuclei_agent: agent.AgentNuclei,
+                                                                  nuclei_agent_no_url_scope: agent.AgentNuclei,
                                                                   agent_persist_mock: Dict[str | bytes, str | bytes],
                                                                   mocker: plugin.MockerFixture) -> None:
     """Tests running the agent and parsing the json output."""
@@ -145,7 +145,7 @@ def testAgentNuclei_whenMessageIsLargeIpRange_scanMultipleTargets(requests_mock:
     requests_mock.get('https://raw.githubusercontent.com/Ostorlab/main/templates/CVE1.yaml', content=b'test1')
     requests_mock.get('https://raw.githubusercontent.com/Ostorlab/main/templates/CVE2.yaml', content=b'test2')
     mocker.patch('agent.agent.AgentNuclei.report_vulnerability', return_value=None)
-    nuclei_agent.process(scan_message_large_network_range)
+    nuclei_agent_no_url_scope.process(scan_message_large_network_range)
     run_command_mock.assert_called()
     run_command_args = run_command_mock.call_args_list
     assert '209.235.0.1' in run_command_args[0].args[0]
