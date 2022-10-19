@@ -130,10 +130,10 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 asset = domain_asset.DomainName(name=matched_at)
 
         if target.port is not None or (target.path is not None and target.scheme is not None):
-            metadata_type = agent_report_vulnerability_mixin.MetaDataType.PORT
+            metadata_type = agent_report_vulnerability_mixin.MetadataType.PORT
             metadata_value = str(target.port) or str(target.path)
             metadata = [
-                agent_report_vulnerability_mixin.VulnerabilityLocationMetaData(type=metadata_type,
+                agent_report_vulnerability_mixin.VulnerabilityLocationMetadata(type=metadata_type,
                                                                                value=metadata_value)
             ]
 
@@ -146,6 +146,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             for line in lines:
                 nuclei_data_dict = json.loads(line)
                 technical_detail = ''
+                logger.info('line ====> ', line)
                 matcher_status = nuclei_data_dict.get('matcher-status', False)
                 matcher_name = nuclei_data_dict.get('matcher-name', None)
                 matched_at = nuclei_data_dict.get('matched-at')
