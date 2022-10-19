@@ -6,7 +6,7 @@ import requests_mock as rq_mock
 from ostorlab.agent.message import message
 from ostorlab.agent.mixins import agent_report_vulnerability_mixin
 from pytest_mock import plugin
-
+from typing import List
 from agent import agent
 
 
@@ -150,3 +150,17 @@ def testAgentNuclei_whenMessageIsLargeIpRange_scanMultipleTargets(requests_mock:
     run_command_args = run_command_mock.call_args_list
     assert '209.235.0.1' in run_command_args[0].args[0]
     assert '209.235.0.15' in run_command_args[1].args[0]
+
+
+@mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei.json')
+def testAgentTsunami_whenIpRangeScanned_emitsExactIpWhereVulnWasFound(nuclei_agent_no_url_scope: agent.AgentNuclei,
+                                                                      agent_mock: List[message.Message],
+                                                                      ip_small_range_message: message.Message,
+                                                                      agent_persist_mock: Dict[str | bytes, str | bytes],
+                                                                      mocker: plugin.MockerFixture) -> None:
+
+    mocker.patch('subprocess.run', return_value=None)
+    nuclei_agent_no_url_scope.process(ip_small_range_message)
+    assert 'v3.report.vulnerability' in [a.selector for a in agent_mock]
+    assert ['link', 'metadata'] in [list(a.data.get('vulnerability_location', {}).keys()) for a in agent_mock]
+    assert agent_mock[0].data['vulnerability_location']

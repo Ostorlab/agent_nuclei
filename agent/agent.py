@@ -21,6 +21,10 @@ from ostorlab.agent.mixins import agent_persist_mixin
 from ostorlab.agent.mixins import agent_report_vulnerability_mixin
 from ostorlab.runtimes import definitions as runtime_definitions
 from rich import logging as rich_logging
+from ostorlab.assets import domain_name as domain_asset
+from ostorlab.assets import ipv4 as ipv4_asset
+from ostorlab.assets import ipv6 as ipv6_asset
+from ostorlab.assets import link
 
 logging.basicConfig(
     format='%(message)s',
@@ -93,6 +97,48 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 self._run_command(targets)
         logger.info('Done processing message of selector : %s', message.selector)
 
+    def _is_ipv4(self, string):
+        try:
+            ipaddress.IPv4Network(string)
+            return True
+        except ValueError:
+            return False
+
+    def _is_ipv6(self, string):
+        try:
+            ipaddress.IPv6Network(string)
+            return True
+        except ValueError:
+            return False
+
+    def _get_vuln_location(self, matched_at):
+        metadata = []
+        target = parse.urlparse(matched_at)
+        if self._is_ipv4(target.path) is not False or self._is_ipv6(target.path) is not False:
+            if target.path is not None and target.scheme is not None:
+                ip = ipaddress.ip_address(str(target.scheme))
+            else:
+                ip = ipaddress.ip_address(str(target.path))
+            if ip.version == 4:
+                asset = ipv4_asset.IPv4(host=matched_at, version=4, mask='32')
+            else:
+                asset = ipv6_asset.IPv6(host=matched_at, version=4, mask='128')
+        else:
+            if target.scheme != '':
+                asset = link.Link(url=matched_at, method='GET')
+            else:
+                asset = domain_asset.DomainName(name=matched_at)
+
+        if target.port is not None or (target.path is not None and target.scheme is not None):
+            metadata_type = agent_report_vulnerability_mixin.MetaDataType.PORT
+            metadata_value = str(target.port) or str(target.path)
+            metadata = [
+                agent_report_vulnerability_mixin.VulnerabilityLocationMetaData(type=metadata_type,
+                                                                               value=metadata_value)
+            ]
+
+        return agent_report_vulnerability_mixin.VulnerabilityLocation(asset=asset, metadata=metadata)
+
     def _parse_output(self) -> None:
         """Parse Nuclei Json output and emit the findings as vulnerabilities"""
         with open(OUTPUT_PATH, 'r', encoding='UTF-8') as f:
@@ -138,6 +184,8 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
 
                 severity = template_info.get('severity')
 
+                vuln_location = self._get_vuln_location(matched_at)
+
                 self.report_vulnerability(
                     entry=kb.Entry(
                         title=template_info.get('name'),
@@ -155,7 +203,8 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                         cvss_v3_vector=template_info.get('classification', {}).get('cvss-metrics', '')
                     ),
                     technical_detail=technical_detail,
-                    risk_rating=NUCLEI_RISK_MAPPING[severity])
+                    risk_rating=NUCLEI_RISK_MAPPING[severity],
+                    vulnerability_location=vuln_location)
 
     def _get_references(self, template_info: Dict[str, Dict[str, List[str]]]) -> Dict[str, str]:
         """Generate dict references from nuclei references template"""
