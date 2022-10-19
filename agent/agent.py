@@ -98,24 +98,40 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
         logger.info('Done processing message of selector : %s', message.selector)
 
     def _is_ipv4(self, string):
-        try:
-            ipaddress.IPv4Network(string)
-            return True
-        except ValueError:
-            return False
+        target = parse.urlparse(string)
+        if target.path is not None and target.scheme != '':
+            try:
+                ipaddress.IPv4Network(target.scheme)
+                return True
+            except ValueError:
+                return False
+        else:
+            try:
+                ipaddress.IPv4Network(target.path)
+                return True
+            except ValueError:
+                return False
 
     def _is_ipv6(self, string):
-        try:
-            ipaddress.IPv6Network(string)
-            return True
-        except ValueError:
-            return False
+        target = parse.urlparse(string)
+        if target.path is not None and target.scheme != '':
+            try:
+                ipaddress.IPv6Network(target.scheme)
+                return True
+            except ValueError:
+                return False
+        else:
+            try:
+                ipaddress.IPv6Network(target.path)
+                return True
+            except ValueError:
+                return False
 
     def _get_vuln_location(self, matched_at):
         metadata = []
         target = parse.urlparse(matched_at)
-        if self._is_ipv4(target.path) is not False or self._is_ipv6(target.path) is not False:
-            if target.path is not None and target.scheme is not None:
+        if self._is_ipv4(matched_at) is not False or self._is_ipv6(matched_at) is not False:
+            if target.path is not None and target.scheme != '':
                 ip = ipaddress.ip_address(str(target.scheme))
             else:
                 ip = ipaddress.ip_address(str(target.path))
@@ -146,7 +162,6 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             for line in lines:
                 nuclei_data_dict = json.loads(line)
                 technical_detail = ''
-                logger.info('line ====> ', line)
                 matcher_status = nuclei_data_dict.get('matcher-status', False)
                 matcher_name = nuclei_data_dict.get('matcher-name', None)
                 matched_at = nuclei_data_dict.get('matched-at')
