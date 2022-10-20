@@ -126,19 +126,22 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             except ValueError:
                 return False
 
-    def _get_vuln_location(self, matched_at: str) -> agent_report_vulnerability_mixin.VulnerabilityLocation:
+    def _build_vuln_location(self, matched_at: str) -> agent_report_vulnerability_mixin.VulnerabilityLocation:
         metadata = []
         target = parse.urlparse(matched_at)
         asset: ipv4_asset.IPv4 | ipv6_asset.IPv6 | link_asset.Link | domain_asset.DomainName
-        if self._is_ipv4(matched_at) is not False or self._is_ipv6(matched_at) is not False:
+        if self._is_ipv4(matched_at) is True:
             if target.path is not None and target.scheme != '':
                 ip = ipaddress.ip_address(str(target.scheme))
             else:
                 ip = ipaddress.ip_address(str(target.path))
-            if ip.version == 4:
-                asset = ipv4_asset.IPv4(host=matched_at, version=4, mask='32')
+            asset = ipv4_asset.IPv4(host=str(ip), version=4, mask='32')
+        elif self._is_ipv6(matched_at) is True:
+            if target.path is not None and target.scheme != '':
+                ip = ipaddress.ip_address(str(target.scheme))
             else:
-                asset = ipv6_asset.IPv6(host=matched_at, version=4, mask='128')
+                ip = ipaddress.ip_address(str(target.path))
+            asset = ipv6_asset.IPv6(host=str(ip), version=4, mask='128')
         else:
             if target.scheme != '':
                 asset = link_asset.Link(url=matched_at, method='GET')
@@ -147,7 +150,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
 
         if target.port is not None or (target.path is not None and target.scheme is not None):
             metadata_type = agent_report_vulnerability_mixin.MetadataType.PORT
-            metadata_value = str(target.port) or str(target.path)
+            metadata_value = str(target.port) if target.port is not None else str(target.path)
             metadata = [
                 agent_report_vulnerability_mixin.VulnerabilityLocationMetadata(type=metadata_type,
                                                                                value=metadata_value)
@@ -200,7 +203,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
 
                 severity = template_info.get('severity')
 
-                vuln_location = self._get_vuln_location(matched_at)
+                vuln_location = self._build_vuln_location(matched_at)
 
                 self.report_vulnerability(
                     entry=kb.Entry(

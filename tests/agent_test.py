@@ -153,14 +153,60 @@ def testAgentNuclei_whenMessageIsLargeIpRange_scanMultipleTargets(requests_mock:
 
 
 @mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei.json')
-def testAgentTsunami_whenIpRangeScanned_emitsExactIpWhereVulnWasFound(nuclei_agent_no_url_scope: agent.AgentNuclei,
-                                                                      agent_mock: List[message.Message],
-                                                                      ip_small_range_message: message.Message,
-                                                                      agent_persist_mock: Dict[
-                                                                          str | bytes, str | bytes],
-                                                                      mocker: plugin.MockerFixture) -> None:
+def testAgentTsunami_whenLinkScanned_emitsExactIpWhereVulnWasFound(nuclei_agent_no_url_scope: agent.AgentNuclei,
+                                                                   agent_mock: List[message.Message],
+                                                                   ip_small_range_message: message.Message,
+                                                                   agent_persist_mock: Dict[
+                                                                       str | bytes, str | bytes],
+                                                                   mocker: plugin.MockerFixture) -> None:
     mocker.patch('subprocess.run', return_value=None)
     nuclei_agent_no_url_scope.process(ip_small_range_message)
     assert 'v3.report.vulnerability' in [a.selector for a in agent_mock]
     assert ['link', 'metadata'] in [list(a.data.get('vulnerability_location', {}).keys()) for a in agent_mock]
-    assert agent_mock[0].data['vulnerability_location']
+    assert agent_mock[0].data['vulnerability_location'] == {'link': {'url': 'https://web.com/', 'method': 'GET'},
+                                                            'metadata': [{'value': 'None', 'type': 'PORT'}]}
+
+
+@mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei_domain.json')
+def testAgentTsunami_whenDomainScanned_emitsExactIpWhereVulnWasFound(nuclei_agent_no_url_scope: agent.AgentNuclei,
+                                                                     agent_mock: List[message.Message],
+                                                                     ip_small_range_message: message.Message,
+                                                                     agent_persist_mock: Dict[
+                                                                         str | bytes, str | bytes],
+                                                                     mocker: plugin.MockerFixture) -> None:
+    mocker.patch('subprocess.run', return_value=None)
+    nuclei_agent_no_url_scope.process(ip_small_range_message)
+    assert 'v3.report.vulnerability' in [a.selector for a in agent_mock]
+    assert ['domain_name', 'metadata'] in [list(a.data.get('vulnerability_location', {}).keys()) for a in agent_mock]
+    assert agent_mock[0].data['vulnerability_location'] == {'domain_name': {'name': 'web.com'},
+                                                            'metadata': [{'value': 'None', 'type': 'PORT'}]}
+
+
+@mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei_ip.json')
+def testAgentTsunami_whenIpScanned_emitsExactIpWhereVulnWasFound(nuclei_agent_no_url_scope: agent.AgentNuclei,
+                                                                 agent_mock: List[message.Message],
+                                                                 ip_small_range_message: message.Message,
+                                                                 agent_persist_mock: Dict[
+                                                                     str | bytes, str | bytes],
+                                                                 mocker: plugin.MockerFixture) -> None:
+    mocker.patch('subprocess.run', return_value=None)
+    nuclei_agent_no_url_scope.process(ip_small_range_message)
+    assert 'v3.report.vulnerability' in [a.selector for a in agent_mock]
+    assert ['ipv4', 'metadata'] in [list(a.data.get('vulnerability_location', {}).keys()) for a in agent_mock]
+    assert agent_mock[0].data['vulnerability_location'] == {'ipv4': {'host': '45.33.32.83', 'mask': '32', 'version': 4},
+                                                            'metadata': [{'value': 'None', 'type': 'PORT'}]}
+
+
+@mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei_ip_port.json')
+def testAgentTsunami_whenIpWithPortScanned_emitsExactIpWhereVulnWasFound(nuclei_agent_no_url_scope: agent.AgentNuclei,
+                                                                 agent_mock: List[message.Message],
+                                                                 ip_small_range_message: message.Message,
+                                                                 agent_persist_mock: Dict[
+                                                                     str | bytes, str | bytes],
+                                                                 mocker: plugin.MockerFixture) -> None:
+    mocker.patch('subprocess.run', return_value=None)
+    nuclei_agent_no_url_scope.process(ip_small_range_message)
+    assert 'v3.report.vulnerability' in [a.selector for a in agent_mock]
+    assert ['ipv4', 'metadata'] in [list(a.data.get('vulnerability_location', {}).keys()) for a in agent_mock]
+    assert agent_mock[0].data['vulnerability_location'] == {'ipv4': {'host': '45.33.32.83', 'mask': '32', 'version': 4},
+                                                            'metadata': [{'value': '55', 'type': 'PORT'}]}
