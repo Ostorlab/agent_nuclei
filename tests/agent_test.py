@@ -1,13 +1,13 @@
 """Unittests for nuclei class."""
-from unittest import mock
 from typing import Dict
+from typing import List
+from unittest import mock
 
 import requests_mock as rq_mock
+from agent import agent
 from ostorlab.agent.message import message
 from ostorlab.agent.mixins import agent_report_vulnerability_mixin
 from pytest_mock import plugin
-from typing import List
-from agent import agent
 
 
 @mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei.json')
@@ -53,9 +53,9 @@ def testAgentNuclei_whenUrlTemplatesGiven_RunScan(requests_mock: rq_mock.mocker.
 
 @mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei.json')
 def testAgentNuclei_whenLinkMessageGiven_NotScan(scan_message_link_2: message.Message,
-                                            nuclei_agent: agent.AgentNuclei,
-                                            agent_persist_mock: Dict[str | bytes, str | bytes],
-                                            mocker: plugin.MockerFixture) -> None:
+                                                 nuclei_agent: agent.AgentNuclei,
+                                                 agent_persist_mock: Dict[str | bytes, str | bytes],
+                                                 mocker: plugin.MockerFixture) -> None:
     """Tests running the agent and parsing the json output."""
     run_command_mock = mocker.patch('subprocess.run', return_value=None)
     mocker.patch('os.path.exists', return_value=True)
@@ -65,9 +65,9 @@ def testAgentNuclei_whenLinkMessageGiven_NotScan(scan_message_link_2: message.Me
 
 @mock.patch('agent.agent.OUTPUT_PATH', './tests/result_nuclei.json')
 def testAgentNuclei_whenDomainNameGiven_NotScan(scan_message_domain_2: message.Message,
-                                           nuclei_agent: agent.AgentNuclei,
-                                           agent_persist_mock: Dict[str | bytes, str | bytes],
-                                           mocker: plugin.MockerFixture) -> None:
+                                                nuclei_agent: agent.AgentNuclei,
+                                                agent_persist_mock: Dict[str | bytes, str | bytes],
+                                                mocker: plugin.MockerFixture) -> None:
     """Tests running the agent and parsing the json output."""
     run_command_mock = mocker.patch('subprocess.run', return_value=None)
     mocker.patch('os.path.exists', return_value=True)
@@ -156,9 +156,9 @@ def testAgentNuclei_whenMessageIsLargeIpRange_scanMultipleTargets(requests_mock:
 def testAgentTsunami_whenIpRangeScanned_emitsExactIpWhereVulnWasFound(nuclei_agent_no_url_scope: agent.AgentNuclei,
                                                                       agent_mock: List[message.Message],
                                                                       ip_small_range_message: message.Message,
-                                                                      agent_persist_mock: Dict[str | bytes, str | bytes],
+                                                                      agent_persist_mock: Dict[
+                                                                          str | bytes, str | bytes],
                                                                       mocker: plugin.MockerFixture) -> None:
-
     mocker.patch('subprocess.run', return_value=None)
     nuclei_agent_no_url_scope.process(ip_small_range_message)
     assert 'v3.report.vulnerability' in [a.selector for a in agent_mock]

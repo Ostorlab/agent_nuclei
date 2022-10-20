@@ -1,30 +1,29 @@
 """Agent implementation for nuclei scanner."""
+import dataclasses
 import ipaddress
 import json
 import logging
 import pathlib
-from urllib import parse
+import re
 import subprocess
 import tempfile
 from os import path
 from typing import Dict, List, Optional
-import re
+from urllib import parse
 
-import dataclasses
 import requests
-
 from ostorlab.agent import agent
-from ostorlab.agent.message import message as m
 from ostorlab.agent import definitions as agent_definitions
 from ostorlab.agent.kb import kb
+from ostorlab.agent.message import message as m
 from ostorlab.agent.mixins import agent_persist_mixin
 from ostorlab.agent.mixins import agent_report_vulnerability_mixin
-from ostorlab.runtimes import definitions as runtime_definitions
-from rich import logging as rich_logging
 from ostorlab.assets import domain_name as domain_asset
 from ostorlab.assets import ipv4 as ipv4_asset
 from ostorlab.assets import ipv6 as ipv6_asset
-from ostorlab.assets import link
+from ostorlab.assets import link as link_asset
+from ostorlab.runtimes import definitions as runtime_definitions
+from rich import logging as rich_logging
 
 logging.basicConfig(
     format='%(message)s',
@@ -97,7 +96,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 self._run_command(targets)
         logger.info('Done processing message of selector : %s', message.selector)
 
-    def _is_ipv4(self, string):
+    def _is_ipv4(self, string: str) -> bool:
         target = parse.urlparse(string)
         if target.path is not None and target.scheme != '':
             try:
@@ -112,7 +111,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             except ValueError:
                 return False
 
-    def _is_ipv6(self, string):
+    def _is_ipv6(self, string: str) -> bool:
         target = parse.urlparse(string)
         if target.path is not None and target.scheme != '':
             try:
@@ -127,9 +126,10 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             except ValueError:
                 return False
 
-    def _get_vuln_location(self, matched_at):
+    def _get_vuln_location(self, matched_at: str) -> agent_report_vulnerability_mixin.VulnerabilityLocation:
         metadata = []
         target = parse.urlparse(matched_at)
+        asset: ipv4_asset.IPv4 | ipv6_asset.IPv6 | link_asset.Link | domain_asset.DomainName
         if self._is_ipv4(matched_at) is not False or self._is_ipv6(matched_at) is not False:
             if target.path is not None and target.scheme != '':
                 ip = ipaddress.ip_address(str(target.scheme))
@@ -141,7 +141,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 asset = ipv6_asset.IPv6(host=matched_at, version=4, mask='128')
         else:
             if target.scheme != '':
-                asset = link.Link(url=matched_at, method='GET')
+                asset = link_asset.Link(url=matched_at, method='GET')
             else:
                 asset = domain_asset.DomainName(name=matched_at)
 
