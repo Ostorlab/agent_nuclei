@@ -148,7 +148,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
             else:
                 asset = domain_asset.DomainName(name=matched_at)
 
-        if target.port is not None or (target.path is not None and target.scheme is not None):
+        if target.port is not None or (target.path is not None and target.scheme is not None and target.path.isnumeric()):
             metadata_type = agent_report_vulnerability_mixin.MetadataType.PORT
             metadata_value = str(target.port) if target.port is not None else str(target.path)
             metadata = [
