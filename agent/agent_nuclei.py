@@ -157,9 +157,9 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                         targeted_by_nation_state=False,
                         cvss_v3_vector=template_info.get('classification', {}).get('cvss-metrics', '')
                     ),
+                    vulnerability_location=vuln_location,
                     technical_detail=technical_detail,
-                    risk_rating=NUCLEI_RISK_MAPPING[severity],
-                    vulnerability_location=vuln_location)
+                    risk_rating=NUCLEI_RISK_MAPPING[severity])
 
     def _get_references(self, template_info: Dict[str, Dict[str, List[str]]]) -> Dict[str, str]:
         """Generate dict references from nuclei references template"""
