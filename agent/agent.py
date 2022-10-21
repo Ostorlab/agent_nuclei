@@ -12,16 +12,13 @@ from typing import Dict, List, Optional
 from urllib import parse
 
 import requests
+from agent.helpers import build_vuln_location
 from ostorlab.agent import agent
 from ostorlab.agent import definitions as agent_definitions
 from ostorlab.agent.kb import kb
 from ostorlab.agent.message import message as m
 from ostorlab.agent.mixins import agent_persist_mixin
 from ostorlab.agent.mixins import agent_report_vulnerability_mixin
-from ostorlab.assets import domain_name as domain_asset
-from ostorlab.assets import ipv4 as ipv4_asset
-from ostorlab.assets import ipv6 as ipv6_asset
-from ostorlab.assets import link as link_asset
 from ostorlab.runtimes import definitions as runtime_definitions
 from rich import logging as rich_logging
 
@@ -96,69 +93,6 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                 self._run_command(targets)
         logger.info('Done processing message of selector : %s', message.selector)
 
-    def _is_ipv4(self, string: str) -> bool:
-        target = parse.urlparse(string)
-        if target.path is not None and target.scheme != '':
-            try:
-                ipaddress.IPv4Network(target.scheme)
-                return True
-            except ValueError:
-                return False
-        else:
-            try:
-                ipaddress.IPv4Network(target.path)
-                return True
-            except ValueError:
-                return False
-
-    def _is_ipv6(self, string: str) -> bool:
-        target = parse.urlparse(string)
-        if target.path is not None and target.scheme != '':
-            try:
-                ipaddress.IPv6Network(target.scheme)
-                return True
-            except ValueError:
-                return False
-        else:
-            try:
-                ipaddress.IPv6Network(target.path)
-                return True
-            except ValueError:
-                return False
-
-    def _build_vuln_location(self, matched_at: str) -> agent_report_vulnerability_mixin.VulnerabilityLocation:
-        metadata = []
-        target = parse.urlparse(matched_at)
-        asset: ipv4_asset.IPv4 | ipv6_asset.IPv6 | link_asset.Link | domain_asset.DomainName
-        if self._is_ipv4(matched_at) is True:
-            if target.path is not None and target.scheme != '':
-                ip = ipaddress.ip_address(str(target.scheme))
-            else:
-                ip = ipaddress.ip_address(str(target.path))
-            asset = ipv4_asset.IPv4(host=str(ip), version=4, mask='32')
-        elif self._is_ipv6(matched_at) is True:
-            if target.path is not None and target.scheme != '':
-                ip = ipaddress.ip_address(str(target.scheme))
-            else:
-                ip = ipaddress.ip_address(str(target.path))
-            asset = ipv6_asset.IPv6(host=str(ip), version=4, mask='128')
-        else:
-            if target.scheme != '':
-                asset = link_asset.Link(url=matched_at, method='GET')
-            else:
-                asset = domain_asset.DomainName(name=matched_at)
-
-        if target.port is not None or (
-                target.path is not None and target.scheme is not None and target.path.isnumeric()):
-            metadata_type = agent_report_vulnerability_mixin.MetadataType.PORT
-            metadata_value = str(target.port) if target.port is not None else str(target.path)
-            metadata = [
-                agent_report_vulnerability_mixin.VulnerabilityLocationMetadata(type=metadata_type,
-                                                                               value=metadata_value)
-            ]
-
-        return agent_report_vulnerability_mixin.VulnerabilityLocation(asset=asset, metadata=metadata)
-
     def _parse_output(self) -> None:
         """Parse Nuclei Json output and emit the findings as vulnerabilities"""
         with open(OUTPUT_PATH, 'r', encoding='UTF-8') as f:
@@ -204,7 +138,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
 
                 severity = template_info.get('severity')
 
-                vuln_location = self._build_vuln_location(matched_at)
+                vuln_location = build_vuln_location(matched_at)
 
                 self.report_vulnerability(
                     entry=kb.Entry(
