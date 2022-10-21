@@ -1,4 +1,4 @@
-"""Pytest fixture for the nuclei agent."""
+"""Pytest fixture for the nuclei agent_nuclei."""
 import pathlib
 import random
 import json
@@ -10,7 +10,7 @@ from ostorlab.agent import definitions as agent_definitions
 from ostorlab.runtimes import definitions as runtime_definitions
 from ostorlab.utils import defintions as utils_definitions
 
-from agent import agent
+from agent import agent_nuclei
 
 
 @pytest.fixture
@@ -99,7 +99,7 @@ def scan_message_domain_2() -> message.Message:
 
 
 @pytest.fixture
-def nuclei_agent() -> agent.AgentNuclei:
+def nuclei_agent() -> agent_nuclei.AgentNuclei:
     with (pathlib.Path(__file__).parent.parent / 'ostorlab.yaml').open() as yaml_o:
         definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
         definition.args[4]['value'] = '([a-zA-Z]+://apple.com/?.*)'
@@ -111,12 +111,12 @@ def nuclei_agent() -> agent.AgentNuclei:
             healthcheck_port=random.randint(5000, 6000),
             redis_url='redis://guest:guest@localhost:6379')
 
-        agent_object = agent.AgentNuclei(definition, settings)
+        agent_object = agent_nuclei.AgentNuclei(definition, settings)
         return agent_object
 
 
 @pytest.fixture
-def nuclei_agent_no_url_scope() -> agent.AgentNuclei:
+def nuclei_agent_no_url_scope() -> agent_nuclei.AgentNuclei:
     with (pathlib.Path(__file__).parent.parent / 'ostorlab.yaml').open() as yaml_o:
         definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
         settings = runtime_definitions.AgentSettings(
@@ -127,12 +127,12 @@ def nuclei_agent_no_url_scope() -> agent.AgentNuclei:
             healthcheck_port=random.randint(5000, 6000),
             redis_url='redis://guest:guest@localhost:6379')
 
-        agent_object = agent.AgentNuclei(definition, settings)
+        agent_object = agent_nuclei.AgentNuclei(definition, settings)
         return agent_object
 
 
 @pytest.fixture
-def nuclei_agent_args() -> agent.AgentNuclei:
+def nuclei_agent_args() -> agent_nuclei.AgentNuclei:
     with (pathlib.Path(__file__).parent.parent / 'ostorlab.yaml').open() as yaml_o:
         definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
         settings = runtime_definitions.AgentSettings(
@@ -149,7 +149,7 @@ def nuclei_agent_args() -> agent.AgentNuclei:
             healthcheck_port=random.randint(5000, 6000),
             redis_url='redis://guest:guest@localhost:6379')
 
-        agent_object = agent.AgentNuclei(definition, settings)
+        agent_object = agent_nuclei.AgentNuclei(definition, settings)
         return agent_object
 
 

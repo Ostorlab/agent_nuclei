@@ -12,7 +12,6 @@ from typing import Dict, List, Optional
 from urllib import parse
 
 import requests
-from agent.helpers import build_vuln_location
 from ostorlab.agent import agent
 from ostorlab.agent import definitions as agent_definitions
 from ostorlab.agent.kb import kb
@@ -21,6 +20,8 @@ from ostorlab.agent.mixins import agent_persist_mixin
 from ostorlab.agent.mixins import agent_report_vulnerability_mixin
 from ostorlab.runtimes import definitions as runtime_definitions
 from rich import logging as rich_logging
+
+from agent.helpers import build_vuln_location
 
 logging.basicConfig(
     format='%(message)s',
