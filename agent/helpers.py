@@ -7,7 +7,6 @@ from ostorlab.agent.mixins import agent_report_vulnerability_mixin
 from ostorlab.assets import domain_name as domain_asset
 from ostorlab.assets import ipv4 as ipv4_asset
 from ostorlab.assets import ipv6 as ipv6_asset
-from ostorlab.assets import link as link_asset
 
 
 def is_ipv4(potential_ip: str) -> bool:
@@ -70,7 +69,7 @@ def build_vuln_location(matched_at: str) -> agent_report_vulnerability_mixin.Vul
     """
     metadata = []
     target = parse.urlparse(matched_at)
-    asset: ipv4_asset.IPv4 | ipv6_asset.IPv6 | link_asset.Link | domain_asset.DomainName
+    asset: ipv4_asset.IPv4 | ipv6_asset.IPv6 | domain_asset.DomainName
     ip = None
     port = None
     if is_ipv4(matched_at) is True:
@@ -82,7 +81,7 @@ def build_vuln_location(matched_at: str) -> agent_report_vulnerability_mixin.Vul
         asset = ipv6_asset.IPv6(host=str(ip), version=4, mask='128')
     else:
         if target.scheme != '':
-            asset = link_asset.Link(url=matched_at, method='GET')
+            asset = domain_asset.DomainName(name=target.netloc)
         else:
             asset = domain_asset.DomainName(name=matched_at)
 

@@ -165,8 +165,8 @@ def testAgentTsunami_whenLinkScanned_emitsExactIpWhereVulnWasFound(nuclei_agent_
     mocker.patch('subprocess.run', return_value=None)
     nuclei_agent_no_url_scope.process(ip_small_range_message)
     assert 'v3.report.vulnerability' in [a.selector for a in agent_mock]
-    assert ['link'] in [list(a.data.get('vulnerability_location', {}).keys()) for a in agent_mock]
-    assert agent_mock[0].data['vulnerability_location'] == {'link': {'url': 'https://web.com/', 'method': 'GET'}}
+    assert ['domain_name'] in [list(a.data.get('vulnerability_location', {}).keys()) for a in agent_mock]
+    assert agent_mock[0].data['vulnerability_location'] == {'domain_name': {'name': 'web.com'}}
 
 
 @mock.patch('agent.agent_nuclei.OUTPUT_PATH',
