@@ -1,26 +1,27 @@
 """Agent implementation for nuclei scanner."""
+import dataclasses
 import ipaddress
 import json
 import logging
 import pathlib
-from urllib import parse
+import re
 import subprocess
 import tempfile
 from os import path
 from typing import Dict, List, Optional
-import re
+from urllib import parse
 
-import dataclasses
 import requests
-
 from ostorlab.agent import agent
-from ostorlab.agent.message import message as m
 from ostorlab.agent import definitions as agent_definitions
 from ostorlab.agent.kb import kb
+from ostorlab.agent.message import message as m
 from ostorlab.agent.mixins import agent_persist_mixin
 from ostorlab.agent.mixins import agent_report_vulnerability_mixin
 from ostorlab.runtimes import definitions as runtime_definitions
 from rich import logging as rich_logging
+
+from agent.helpers import build_vuln_location
 
 logging.basicConfig(
     format='%(message)s',
@@ -138,6 +139,8 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
 
                 severity = template_info.get('severity')
 
+                vuln_location = build_vuln_location(matched_at)
+
                 self.report_vulnerability(
                     entry=kb.Entry(
                         title=template_info.get('name'),
@@ -154,6 +157,7 @@ class AgentNuclei(agent.Agent, agent_report_vulnerability_mixin.AgentReportVulnM
                         targeted_by_nation_state=False,
                         cvss_v3_vector=template_info.get('classification', {}).get('cvss-metrics', '')
                     ),
+                    vulnerability_location=vuln_location,
                     technical_detail=technical_detail,
                     risk_rating=NUCLEI_RISK_MAPPING[severity])
 
