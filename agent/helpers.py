@@ -90,7 +90,7 @@ def build_vuln_location(matched_at: str) -> agent_report_vulnerability_mixin.Vul
         metadata_value = str(target.port) if target.port is not None else port
         assert metadata_value is not None
         metadata = [
-            agent_report_vulnerability_mixin.VulnerabilityLocationMetadata(type=metadata_type,
+            agent_report_vulnerability_mixin.VulnerabilityLocationMetadata(metadata_type=metadata_type,
                                                                            value=metadata_value)
         ]
 
