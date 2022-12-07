@@ -288,7 +288,8 @@ class AgentNuclei(
             return "http"
 
     def _prepare_targets(self, message: m.Message) -> List[str]:
-        """Prepare targets based on type, if a domain name is provided, port and protocol are collected from the config."""
+        """Prepare targets based on type, if a domain name is provided, port and protocol are collected
+        from the config."""
         if message.data.get("host") is not None:
             host = str(message.data.get("host"))
             if message.data.get("mask") is None:
