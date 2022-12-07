@@ -12,11 +12,11 @@ from ostorlab.assets import ipv6 as ipv6_asset
 def is_ipv4(potential_ip: str) -> bool:
     """check if the potential_ip is a valid ipv4.
 
-        Args:
-            potential_ip: string.
+    Args:
+        potential_ip: string.
 
-        Returns:
-            - boolean.
+    Returns:
+        - boolean.
     """
     ip, _ = split_ipv4(potential_ip)
     try:
@@ -29,28 +29,28 @@ def is_ipv4(potential_ip: str) -> bool:
 def split_ipv4(potential_ip: str) -> Tuple[str, str | None]:
     """split the potential_ip to get the ip and the port if existed.
 
-        Args:
-            potential_ip: string.
+    Args:
+        potential_ip: string.
 
-        Returns:
-            - ip, port.
+    Returns:
+        - ip, port.
     """
     ip = potential_ip
     port = None
-    if ':' in potential_ip:
-        ip, port = potential_ip.split(':', maxsplit=1)
+    if ":" in potential_ip:
+        ip, port = potential_ip.split(":", maxsplit=1)
     return ip, port
 
 
 def is_ipv6(potential_ip: str) -> bool:
     """check if the potential_ip is a valid ipv6.
 
-            Args:
-                potential_ip: string.
+    Args:
+        potential_ip: string.
 
-            Returns:
-                - boolean.
-        """
+    Returns:
+        - boolean.
+    """
     try:
         ipaddress.IPv6Address(potential_ip)
         return True
@@ -58,7 +58,9 @@ def is_ipv6(potential_ip: str) -> bool:
         return False
 
 
-def build_vuln_location(matched_at: str) -> agent_report_vulnerability_mixin.VulnerabilityLocation:
+def build_vuln_location(
+    matched_at: str,
+) -> agent_report_vulnerability_mixin.VulnerabilityLocation:
     """Build VulnerabilityLocation based on the asset.
 
     Args:
@@ -74,13 +76,13 @@ def build_vuln_location(matched_at: str) -> agent_report_vulnerability_mixin.Vul
     port = None
     if is_ipv4(matched_at) is True:
         ip, port = split_ipv4(matched_at)
-        asset = ipv4_asset.IPv4(host=str(ip), version=4, mask='32')
+        asset = ipv4_asset.IPv4(host=str(ip), version=4, mask="32")
 
     elif is_ipv6(matched_at) is not False:
         ip = matched_at
-        asset = ipv6_asset.IPv6(host=str(ip), version=4, mask='128')
+        asset = ipv6_asset.IPv6(host=str(ip), version=4, mask="128")
     else:
-        if target.scheme != '':
+        if target.scheme != "":
             asset = domain_asset.DomainName(name=target.netloc)
         else:
             asset = domain_asset.DomainName(name=matched_at)
@@ -90,8 +92,11 @@ def build_vuln_location(matched_at: str) -> agent_report_vulnerability_mixin.Vul
         metadata_value = str(target.port) if target.port is not None else port
         assert metadata_value is not None
         metadata = [
-            agent_report_vulnerability_mixin.VulnerabilityLocationMetadata(metadata_type=metadata_type,
-                                                                           value=metadata_value)
+            agent_report_vulnerability_mixin.VulnerabilityLocationMetadata(
+                metadata_type=metadata_type, value=metadata_value
+            )
         ]
 
-    return agent_report_vulnerability_mixin.VulnerabilityLocation(asset=asset, metadata=metadata)
+    return agent_report_vulnerability_mixin.VulnerabilityLocation(
+        asset=asset, metadata=metadata
+    )
