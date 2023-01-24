@@ -83,7 +83,7 @@ def build_vuln_location(
         asset = ipv6_asset.IPv6(host=str(ip), version=4, mask="128")
     else:
         if target.scheme != "":
-            asset = domain_asset.DomainName(name=target.netloc)
+            asset = domain_asset.DomainName(name=target.hostname)
         else:
             asset = domain_asset.DomainName(name=matched_at)
 

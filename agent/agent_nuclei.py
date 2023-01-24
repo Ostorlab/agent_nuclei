@@ -8,8 +8,8 @@ import re
 import subprocess
 import tempfile
 from os import path
-from typing import Dict, List, Optional
 from urllib import parse
+from typing import Dict, List, Optional
 
 import requests
 from ostorlab.agent import agent
@@ -21,7 +21,7 @@ from ostorlab.agent.mixins import agent_report_vulnerability_mixin
 from ostorlab.runtimes import definitions as runtime_definitions
 from rich import logging as rich_logging
 
-from agent.helpers import build_vuln_location
+from agent import helpers
 
 logging.basicConfig(
     format="%(message)s",
@@ -152,7 +152,7 @@ class AgentNuclei(
 
                 severity = template_info.get("severity")
 
-                vuln_location = build_vuln_location(matched_at)
+                vuln_location = helpers.build_vuln_location(matched_at)
 
                 self.report_vulnerability(
                     entry=kb.Entry(
