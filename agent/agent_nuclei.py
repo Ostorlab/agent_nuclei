@@ -42,6 +42,7 @@ NUCLEI_RISK_MAPPING = {
     "medium": agent_report_vulnerability_mixin.RiskRating.MEDIUM,
     "low": agent_report_vulnerability_mixin.RiskRating.LOW,
     "info": agent_report_vulnerability_mixin.RiskRating.INFO,
+    "unknown": agent_report_vulnerability_mixin.RiskRating.INFO,
 }
 
 STORAGE_NAME = "agent_nuclei"
