@@ -2,6 +2,7 @@
 import ipaddress
 from typing import Tuple
 from urllib import parse
+import tld
 
 from ostorlab.agent.mixins import agent_report_vulnerability_mixin
 from ostorlab.assets import domain_name as domain_asset
@@ -82,10 +83,12 @@ def build_vuln_location(
         ip = matched_at
         asset = ipv6_asset.IPv6(host=str(ip), version=4, mask="128")
     else:
-        if target.scheme != "" and target.hostname is not None:
-            asset = domain_asset.DomainName(name=target.hostname)
-        else:
-            asset = domain_asset.DomainName(name=matched_at)
+        if matched_at is not None:
+            asset = domain_asset.DomainName(
+                name=tld.get_tld(
+                    matched_at, as_object=True, fix_protocol=True, fail_silently=True
+                ).fld
+            )
 
     if target.port is not None or (ip is not None and port is not None):
         metadata_type = agent_report_vulnerability_mixin.MetadataType.PORT
