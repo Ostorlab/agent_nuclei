@@ -1,9 +1,9 @@
 """Helper for nuclei Agent to complete the scan."""
 import ipaddress
-from typing import Tuple
+from typing import Tuple, cast
 from urllib import parse
-import tld
 
+import tld
 from ostorlab.agent.mixins import agent_report_vulnerability_mixin
 from ostorlab.assets import domain_name as domain_asset
 from ostorlab.assets import ipv4 as ipv4_asset
@@ -84,11 +84,12 @@ def build_vuln_location(
         asset = ipv6_asset.IPv6(host=str(ip), version=4, mask="128")
     else:
         if matched_at is not None:
-            asset = domain_asset.DomainName(
-                name=tld.get_tld(
-                    matched_at, as_object=True, fix_protocol=True, fail_silently=True
-                ).fld
+            canonalized_domain = tld.get_tld(
+                matched_at, as_object=True, fix_protocol=True, fail_silently=True
             )
+            tld_domain = cast(tld.Result, canonalized_domain)
+            if canonalized_domain is not None:
+                asset = domain_asset.DomainName(name=tld_domain.fld)
 
     if target.port is not None or (ip is not None and port is not None):
         metadata_type = agent_report_vulnerability_mixin.MetadataType.PORT
