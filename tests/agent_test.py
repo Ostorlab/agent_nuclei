@@ -387,20 +387,20 @@ def testAgentNuclei_whenLocationHasDomainAndPort_reportedLocationShouldOnlyHaveN
     }
 
 
-@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
-def testAgentNuclei_whenDomainNameGivenWithPort_Scan(
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_domain_port.json")
+def testAgentNuclei_whenMessageIsDomainWithPort_scanMultipleTargets(
     nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
-    scan_message_domain_3: message.Message,
-    nuclei_agent: agent_nuclei.AgentNuclei,
+    scan_message_domain: message.Message,
     agent_mock: List[message.Message],
+    nuclei_agent: agent_nuclei.AgentNuclei,
     agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
-    """Tests running the agent and parsing the json output."""
     mocker.patch("subprocess.run", return_value=None)
-    nuclei_agent_no_url_scope.process(scan_message_domain_3)
+    nuclei_agent_no_url_scope.process(scan_message_domain)
 
     assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
     assert (
-        agent_mock[0].data["vulnerability_location"]["domain_name"]["name"] == "web.com"
+        agent_mock[0].data["vulnerability_location"]["domain_name"]["name"]
+        == "example.com"
     )

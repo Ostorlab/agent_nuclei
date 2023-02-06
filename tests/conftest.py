@@ -70,14 +70,6 @@ def scan_message_domain_2() -> message.Message:
 
 
 @pytest.fixture
-def scan_message_domain_3() -> message.Message:
-    """Creates a dummy message of type v3.asset.domain_name to be used by the agent for testing purposes."""
-    selector = "v3.asset.domain_name"
-    msg_data = {"name": "ostorlab.co:8080"}
-    return message.Message.from_data(selector, data=msg_data)
-
-
-@pytest.fixture
 def nuclei_agent() -> agent_nuclei.AgentNuclei:
     with (pathlib.Path(__file__).parent.parent / "ostorlab.yaml").open() as yaml_o:
         definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
