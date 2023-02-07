@@ -83,13 +83,7 @@ def build_vuln_location(
         ip = matched_at
         asset = ipv6_asset.IPv6(host=str(ip), version=4, mask="128")
     else:
-        if matched_at is not None:
-            canonalized_domain = tld.get_tld(
-                matched_at, as_object=True, fix_protocol=True, fail_silently=True
-            )
-            tld_domain = cast(tld.Result, canonalized_domain)
-            if canonalized_domain is not None:
-                asset = domain_asset.DomainName(name=tld_domain.fld)
+        asset = domain_asset.DomainName(name=prepare_domain_asset(matched_at))
 
     if target.port is not None or (ip is not None and port is not None):
         metadata_type = agent_report_vulnerability_mixin.MetadataType.PORT
@@ -104,3 +98,27 @@ def build_vuln_location(
     return agent_report_vulnerability_mixin.VulnerabilityLocation(
         asset=asset, metadata=metadata
     )
+
+
+def prepare_domain_asset(url: str) -> str:
+    """Prepares the domain asset object for the given URL.
+
+    Args:
+    url: The URL to extract the domain from.
+
+    Returns:
+    Optional[domain_asset.DomainName]: A domain asset
+    """
+    asset = ""
+    if url is not None:
+        canonalized_domain = tld.get_tld(
+            url, as_object=True, fix_protocol=True, fail_silently=True
+        )
+        tld_domain = cast(tld.Result, canonalized_domain)
+        result_neloc = tld_domain.parsed_url.netloc
+        if ":" in result_neloc:
+            asset = result_neloc.split(":")[0]
+        else:
+            asset = result_neloc
+
+    return asset

@@ -3,11 +3,14 @@ from typing import Dict
 from typing import List
 from unittest import mock
 
+import pytest
 import requests_mock as rq_mock
-from agent import agent_nuclei
 from ostorlab.agent.message import message
 from ostorlab.agent.mixins import agent_report_vulnerability_mixin
 from pytest_mock import plugin
+
+from agent import agent_nuclei
+from agent import helpers
 
 
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
@@ -404,3 +407,20 @@ def testAgentNuclei_whenMessageIsDomainWithPort_scanMultipleTargets(
         agent_mock[0].data["vulnerability_location"]["domain_name"]["name"]
         == "example.com"
     )
+
+
+@pytest.mark.parametrize(
+    "url, domain_name",
+    [
+        ("www.example.com", "www.example.com"),
+        ("www.example.com:80", "www.example.com"),
+        ("https://www.example.com", "www.example.com"),
+        ("https://www.example.com:80", "www.example.com"),
+        ("example.com:80", "example.com"),
+        ("example.com", "example.com"),
+    ],
+)
+def testPrepareDomainAsset_whenUrlGiven_returnsDomainAsset(
+    url: str, domain_name: str
+) -> None:
+    assert helpers.prepare_domain_asset(url) == domain_name
