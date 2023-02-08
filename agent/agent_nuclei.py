@@ -68,7 +68,6 @@ class AgentNuclei(
         agent_definition: agent_definitions.AgentDefinition,
         agent_settings: runtime_definitions.AgentSettings,
     ) -> None:
-
         agent.Agent.__init__(self, agent_definition, agent_settings)
         agent_persist_mixin.AgentPersistMixin.__init__(self, agent_settings)
         agent_report_vulnerability_mixin.AgentReportVulnMixin.__init__(self)
