@@ -1,6 +1,7 @@
 """Helper for nuclei Agent to complete the scan."""
 import ipaddress
-from typing import Tuple, cast
+import logging
+from typing import Tuple, cast, Optional
 from urllib import parse
 
 import tld
@@ -8,6 +9,16 @@ from ostorlab.agent.mixins import agent_report_vulnerability_mixin
 from ostorlab.assets import domain_name as domain_asset
 from ostorlab.assets import ipv4 as ipv4_asset
 from ostorlab.assets import ipv6 as ipv6_asset
+from rich import logging as rich_logging
+
+logging.basicConfig(
+    format="%(message)s",
+    datefmt="[%X]",
+    handlers=[rich_logging.RichHandler(rich_tracebacks=True)],
+    level="INFO",
+    force=True,
+)
+logger = logging.getLogger(__name__)
 
 
 def is_ipv4(potential_ip: str) -> bool:
@@ -61,7 +72,7 @@ def is_ipv6(potential_ip: str) -> bool:
 
 def build_vuln_location(
     matched_at: str,
-) -> agent_report_vulnerability_mixin.VulnerabilityLocation:
+) -> Optional[agent_report_vulnerability_mixin.VulnerabilityLocation]:
     """Build VulnerabilityLocation based on the asset.
 
     Args:
@@ -70,6 +81,9 @@ def build_vuln_location(
     Returns:
         - VulnerabilityLocation.
     """
+    if matched_at is None or matched_at == "":
+        logger.info("Matched at value is absent.")
+        return None
     metadata = []
     target = parse.urlparse(matched_at)
     asset: ipv4_asset.IPv4 | ipv6_asset.IPv6 | domain_asset.DomainName
@@ -78,7 +92,6 @@ def build_vuln_location(
     if is_ipv4(matched_at) is True:
         ip, port = split_ipv4(matched_at)
         asset = ipv4_asset.IPv4(host=str(ip), version=4, mask="32")
-
     elif is_ipv6(matched_at) is not False:
         ip = matched_at
         asset = ipv6_asset.IPv6(host=str(ip), version=4, mask="128")
@@ -94,7 +107,6 @@ def build_vuln_location(
                 metadata_type=metadata_type, value=metadata_value
             )
         ]
-
     return agent_report_vulnerability_mixin.VulnerabilityLocation(
         asset=asset, metadata=metadata
     )
