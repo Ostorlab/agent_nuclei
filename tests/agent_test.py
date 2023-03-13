@@ -424,3 +424,19 @@ def testPrepareDomainAsset_whenUrlGiven_returnsDomainAsset(
     url: str, domain_name: str
 ) -> None:
     assert helpers.prepare_domain_asset(url) == domain_name
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_none.json")
+def testAgentNuclei_whenMacthedAtIsInvalid_reportVuln(
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    scan_message_domain: message.Message,
+    agent_mock: List[message.Message],
+    nuclei_agent: agent_nuclei.AgentNuclei,
+    agent_persist_mock: Dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+) -> None:
+    mocker.patch("subprocess.run", return_value=None)
+    nuclei_agent_no_url_scope.process(scan_message_domain)
+
+    assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
+    assert agent_mock[0].data.get("vulnerability_location") is None
