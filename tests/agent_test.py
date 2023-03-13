@@ -426,7 +426,9 @@ def testPrepareDomainAsset_whenUrlGiven_returnsDomainAsset(
     assert helpers.prepare_domain_asset(url) == domain_name
 
 
-@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_none.json")
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_matched_at_empty.json"
+)
 def testAgentNuclei_whenMacthedAtIsInvalid_reportVuln(
     nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
     scan_message_domain: message.Message,
