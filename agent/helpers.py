@@ -1,7 +1,6 @@
 """Helper for nuclei Agent to complete the scan."""
 import ipaddress
 import logging
-import urllib.parse
 from typing import Tuple, cast, Optional
 from urllib import parse
 
@@ -130,7 +129,7 @@ def prepare_domain_asset(url: str) -> str:
     )
 
     if canonized_domain is None:
-        return urllib.parse.urlparse(url).netloc
+        return parse.urlparse(url).netloc
 
     tld_domain = cast(tld.Result, canonized_domain)
     result_neloc = tld_domain.parsed_url.netloc
