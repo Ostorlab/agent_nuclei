@@ -121,16 +121,21 @@ def prepare_domain_asset(url: str) -> str:
     Returns:
     Optional[domain_asset.DomainName]: A domain asset
     """
-    asset = ""
-    if url is not None:
-        canonalized_domain = tld.get_tld(
-            url, as_object=True, fix_protocol=True, fail_silently=True
-        )
-        tld_domain = cast(tld.Result, canonalized_domain)
-        result_neloc = tld_domain.parsed_url.netloc
-        if ":" in result_neloc:
-            asset = result_neloc.split(":")[0]
-        else:
-            asset = result_neloc
+    if url is None:
+        return ""
+
+    canonized_domain = tld.get_tld(
+        url, as_object=True, fix_protocol=True, fail_silently=True
+    )
+
+    if canonized_domain is None:
+        return parse.urlparse(url).netloc
+
+    tld_domain = cast(tld.Result, canonized_domain)
+    result_neloc = tld_domain.parsed_url.netloc
+    if ":" in result_neloc:
+        asset = result_neloc.split(":")[0]
+    else:
+        asset = result_neloc
 
     return asset

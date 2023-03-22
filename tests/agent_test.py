@@ -288,6 +288,25 @@ def testAgentNuclei_whenLinkScanned_emitsExactIpWhereVulnWasFound(
     }
 
 
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_non_domain.json")
+def testAgentNuclei_whenDomainDoesntExist_emitsDomainAsIs(
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    agent_mock: List[message.Message],
+    ip_small_range_message: message.Message,
+    agent_persist_mock: Dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+) -> None:
+    mocker.patch("subprocess.run", return_value=None)
+    nuclei_agent_no_url_scope.process(ip_small_range_message)
+    assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
+    assert ["domain_name"] in [
+        list(a.data.get("vulnerability_location", {}).keys()) for a in agent_mock
+    ]
+    assert agent_mock[0].data["vulnerability_location"] == {
+        "domain_name": {"name": "web.comx"}
+    }
+
+
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_domain.json")
 def testAgentNuclei_whenDomainScanned_emitsExactDomainWhereVulnWasFound(
     nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
