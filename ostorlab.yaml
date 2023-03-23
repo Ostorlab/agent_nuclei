@@ -98,3 +98,10 @@ args:
   - name: "scope_urls_regex"
     type: "string"
     description: "to define scanning scope."
+  - name: "vpn_config"
+    type: "string"
+    description: "Content of the VPN:wg0.conf configuration file."
+  - name: "dns_config"
+    type: "string"
+    description: "Content of the /etc/resolv.conf file."
+  

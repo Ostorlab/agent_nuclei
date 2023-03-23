@@ -22,6 +22,8 @@ from ostorlab.runtimes import definitions as runtime_definitions
 from rich import logging as rich_logging
 
 from agent import helpers
+from agent.vpn import wg_vpn
+
 
 logging.basicConfig(
     format="%(message)s",
@@ -72,6 +74,14 @@ class AgentNuclei(
         agent_persist_mixin.AgentPersistMixin.__init__(self, agent_settings)
         agent_report_vulnerability_mixin.AgentReportVulnMixin.__init__(self)
         self._scope_urls_regex: Optional[str] = self.args.get("scope_urls_regex")
+        self._vpn_config: Optional[str] = self.args.get("vpn_config")
+        self._dns_config: Optional[str] = self.args.get("dns_config")
+
+    def start(self) -> None:
+        """Enable VPN configuration at the beginning if needed."""
+        wg_vpn.enable_vpn_connection(
+            vpn_config=self._vpn_config, dns_config=self._dns_config
+        )
 
     def process(self, message: m.Message) -> None:
         """Starts Nuclei scan wait for the scan to finish,

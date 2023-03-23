@@ -1,13 +1,7 @@
-FROM python:3.10-alpine as base
-FROM base as builder
-
-RUN mkdir /install
-RUN apk add build-base
-WORKDIR /install
+FROM ubuntu:latest as base
+RUN apt-get update && apt-get -y install python3.10 pip wget zip wireguard iproute2 openresolv
 COPY requirement.txt /requirement.txt
-RUN pip install --prefix=/install -r /requirement.txt
-FROM base
-COPY --from=builder /install /usr/local
+RUN pip install -r /requirement.txt
 RUN mkdir /nuclei
 WORKDIR /nuclei
 ARG NUCLEI_VERSION=2.7.7
