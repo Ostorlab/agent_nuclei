@@ -5,7 +5,7 @@ from typing import Any, Callable
 TRUNCATE_SIZE = 256
 
 
-def truncate_str(value: str | bytes, truncate_size: int = TRUNCATE_SIZE) -> str | bytes:
+def truncate_str(value: str | bytes, truncate_size: int = TRUNCATE_SIZE) -> str:
     """Truncate a string or bytes value.
 
     Args:
@@ -24,7 +24,9 @@ def truncate_str(value: str | bytes, truncate_size: int = TRUNCATE_SIZE) -> str 
 
 
 def minify_dict(
-    value: Any, handler: Callable[[object], object]
+    value: Any,
+    handler: Callable[[str | bytes, int], str],
+    truncate_size: int = TRUNCATE_SIZE,
 ) -> dict[object, object] | list[object] | object:
     """Recursive approach to minify dictionary values.
 
@@ -42,4 +44,4 @@ def minify_dict(
             value[key] = minify_dict(v, handler)
         return value
     else:
-        return handler(value)
+        return handler(value, truncate_size)
