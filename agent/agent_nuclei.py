@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 from os import path
 from urllib import parse
+from copy import deepcopy
 from typing import Dict, List, Optional
 
 import requests
@@ -22,8 +23,11 @@ from ostorlab.runtimes import definitions as runtime_definitions
 from rich import logging as rich_logging
 
 from agent import helpers
+from agent import formatters
 from agent.vpn import wg_vpn
 
+
+FINDING_MAX_SIZE = 4096
 
 logging.basicConfig(
     format="%(message)s",
@@ -139,16 +143,18 @@ class AgentNuclei(
 
                 req_type = nuclei_data_dict.get("type")
                 request = nuclei_data_dict.get("request")
+                truncated_request = formatters.truncate_str(
+                    value=request, truncate_size=FINDING_MAX_SIZE
+                )
                 if request is not None:
-                    technical_detail += (
-                        f""" #### Request:  \n```{req_type}  \n{request}\n``` \n"""
-                    )
+                    technical_detail += f""" #### Request:  \n```{req_type}  \n{truncated_request}\n``` \n"""
 
                 response = nuclei_data_dict.get("response")
+                truncated_reponse = formatters.truncate_str(
+                    value=response, truncate_size=FINDING_MAX_SIZE
+                )
                 if response is not None:
-                    technical_detail += (
-                        f""" #### Response:  \n```{req_type}  \n{response}\n``` \n """
-                    )
+                    technical_detail += f""" #### Response:  \n```{req_type}  \n{truncated_reponse}\n``` \n """
                 nuclei_data_dict.pop("template", None)
                 nuclei_data_dict.pop("template-id", None)
                 nuclei_data_dict.pop("template-url", None)
@@ -157,7 +163,12 @@ class AgentNuclei(
                 nuclei_data_dict.pop("curl-command", None)
                 nuclei_data_dict["info"].pop("author", None)
                 nuclei_data_dict["info"].pop("tags", None)
-                scan_results = json.dumps(nuclei_data_dict, indent=4, sort_keys=True)
+
+                minified_data_dict = deepcopy(nuclei_data_dict)
+                minified_data_dict = formatters.minify_dict(
+                    nuclei_data_dict, formatters.truncate_str
+                )
+                scan_results = json.dumps(minified_data_dict, indent=4, sort_keys=True)
                 technical_detail += f"""```json\n  {scan_results} \n ``` """
 
                 severity = template_info.get("severity")
