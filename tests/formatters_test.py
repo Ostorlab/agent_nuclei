@@ -9,7 +9,7 @@ def testMinifyDict_whenSimpleDict_shouldMinifyStringValues(
 ) -> None:
     """Ensure the minify dict method return correct values for a simple dictionary."""
     # Mock the default value of the truncate method, and set it to a small number.
-    mocker.patch.object(formatters.truncate_str, "__defaults__", (5,))
+    mocker.patch.object(formatters.minify_dict, "__defaults__", (5,))
 
     input_dict = {
         "key1": "very long string value.....",
@@ -29,7 +29,7 @@ def testMinifyDict_whenNestedDict_shouldMinifyStringValues(
     mocker: plugin.MockerFixture,
 ) -> None:
     """Ensure the minify dict method return correct values for nested dictionaries."""
-    mocker.patch.object(formatters.truncate_str, "__defaults__", (2,))
+    mocker.patch.object(formatters.minify_dict, "__defaults__", (2,))
     input_dict = {
         "key1": "very long string value.....",
         "key2": {"key3": {"key4": "key4 very long string value...."}, "key5": 5},
@@ -49,7 +49,7 @@ def testMinifyDict_whenNestedDictsAndList_shouldMinifyStringValues(
     mocker: plugin.MockerFixture,
 ) -> None:
     """Ensure the minify dict method return correct values for nested dictionaries and lists."""
-    mocker.patch.object(formatters.truncate_str, "__defaults__", (3,))
+    mocker.patch.object(formatters.minify_dict, "__defaults__", (3,))
     input_dict = {
         "key1": "very long string value.....",
         "key2": {
