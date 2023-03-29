@@ -143,18 +143,19 @@ class AgentNuclei(
 
                 req_type = nuclei_data_dict.get("type")
                 request = nuclei_data_dict.get("request")
-                truncated_request = formatters.truncate(
-                    value=request, truncate_size=FINDING_MAX_SIZE
-                )
                 if request is not None:
+                    truncated_request = formatters.truncate(
+                        value=request, truncate_size=FINDING_MAX_SIZE
+                    )
                     technical_detail += f""" #### Request:  \n```{req_type}  \n{truncated_request}\n``` \n"""
 
                 response = nuclei_data_dict.get("response")
-                truncated_reponse = formatters.truncate(
-                    value=response, truncate_size=FINDING_MAX_SIZE
-                )
                 if response is not None:
+                    truncated_reponse = formatters.truncate(
+                        value=response, truncate_size=FINDING_MAX_SIZE
+                    )
                     technical_detail += f""" #### Response:  \n```{req_type}  \n{truncated_reponse}\n``` \n """
+
                 nuclei_data_dict.pop("template", None)
                 nuclei_data_dict.pop("template-id", None)
                 nuclei_data_dict.pop("template-url", None)
