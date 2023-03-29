@@ -4,7 +4,7 @@ from pytest_mock import plugin
 from agent import formatters
 
 
-def testTruncate_always_shouldTruncateString():
+def testTruncate_always_shouldTruncateString() -> None:
     """Ensure the truncate formatter returns the correct number of characters & adds `...` at the end."""
     long_string = "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium"
 
