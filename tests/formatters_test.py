@@ -4,6 +4,15 @@ from pytest_mock import plugin
 from agent import formatters
 
 
+def testTruncate_always_shouldTruncateString():
+    """Ensure the truncate formatter returns the correct number of characters & adds `...` at the end."""
+    long_string = "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium"
+
+    truncated = formatters.truncate(long_string, truncate_size=20)
+
+    assert truncated == "Sed ut perspiciatis ..."
+
+
 def testMinifyDict_whenSimpleDict_shouldMinifyStringValues(
     mocker: plugin.MockerFixture,
 ) -> None:
@@ -16,7 +25,7 @@ def testMinifyDict_whenSimpleDict_shouldMinifyStringValues(
         "key2": "another very long string value.....",
         "key3": "a third very long string value.....",
     }
-    minified_dict = formatters.minify_dict(input_dict, formatters.truncate_str)
+    minified_dict = formatters.minify_dict(input_dict, formatters.truncate)
 
     assert minified_dict == {
         "key1": "very ...",
@@ -36,7 +45,7 @@ def testMinifyDict_whenNestedDict_shouldMinifyStringValues(
         "key6": "a third very long string value.....",
     }
 
-    minified_dict = formatters.minify_dict(input_dict, formatters.truncate_str)
+    minified_dict = formatters.minify_dict(input_dict, formatters.truncate)
 
     assert minified_dict == {
         "key1": "ve...",
@@ -62,7 +71,7 @@ def testMinifyDict_whenNestedDictsAndList_shouldMinifyStringValues(
             "key5": 42,
         },
     }
-    minified_dict = formatters.minify_dict(input_dict, formatters.truncate_str)
+    minified_dict = formatters.minify_dict(input_dict, formatters.truncate)
 
     assert minified_dict == {
         "key1": "ver...",

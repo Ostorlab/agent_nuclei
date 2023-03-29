@@ -143,14 +143,14 @@ class AgentNuclei(
 
                 req_type = nuclei_data_dict.get("type")
                 request = nuclei_data_dict.get("request")
-                truncated_request = formatters.truncate_str(
+                truncated_request = formatters.truncate(
                     value=request, truncate_size=FINDING_MAX_SIZE
                 )
                 if request is not None:
                     technical_detail += f""" #### Request:  \n```{req_type}  \n{truncated_request}\n``` \n"""
 
                 response = nuclei_data_dict.get("response")
-                truncated_reponse = formatters.truncate_str(
+                truncated_reponse = formatters.truncate(
                     value=response, truncate_size=FINDING_MAX_SIZE
                 )
                 if response is not None:
@@ -166,7 +166,7 @@ class AgentNuclei(
 
                 minified_data_dict = deepcopy(nuclei_data_dict)
                 minified_data_dict = formatters.minify_dict(
-                    nuclei_data_dict, formatters.truncate_str
+                    nuclei_data_dict, formatters.truncate
                 )
                 scan_results = json.dumps(minified_data_dict, indent=4, sort_keys=True)
                 technical_detail += f"""```json\n  {scan_results} \n ``` """

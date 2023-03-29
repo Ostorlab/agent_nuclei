@@ -5,7 +5,7 @@ from typing import Any, Callable
 TRUNCATE_SIZE = 256
 
 
-def truncate_str(value: str | bytes, truncate_size: int = TRUNCATE_SIZE) -> str:
+def truncate(value: str | bytes, truncate_size: int = TRUNCATE_SIZE) -> str:
     """Truncate a string or bytes value.
 
     Args:
