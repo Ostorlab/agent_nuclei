@@ -355,7 +355,7 @@ class AgentNuclei(
             command = ["/nuclei/nuclei"]
             for item in chunk:
                 command.extend(["-u", item])
-            command.extend(["-json", "-irr", "-silent", "-o", OUTPUT_PATH])
+            command.extend(["-j", "-irr", "-silent", "-o", OUTPUT_PATH])
             if templates is not None:
                 for template in templates:
                     if path.exists(template):
