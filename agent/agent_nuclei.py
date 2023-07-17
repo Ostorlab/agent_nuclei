@@ -173,6 +173,8 @@ class AgentNuclei(
                 technical_detail += f"""```json\n  {scan_results} \n ``` """
 
                 severity = template_info.get("severity")
+                if template_info.get("name") == "CORS Misconfiguration":
+                    severity = "medium"
 
                 vuln_location = helpers.build_vuln_location(matched_at)
 
