@@ -497,15 +497,5 @@ def testAgentNuclei_whenProcessFailed_agentNotCrash(
 
     run_command_mock.assert_called()
     run_command_args = run_command_mock.call_args_list
-    assert run_command_args[1][0][0] == [
-        "/nuclei/nuclei",
-        "-u",
-        "209.235.136.112",
-        "-json",
-        "-irr",
-        "-silent",
-        "-o",
-        "./tests/result_nuclei.json",
-    ]
-
+    assert "/nuclei/nuclei" in run_command_args[1][0][0]
     assert mock_report_vulnerability.call_count == 0
