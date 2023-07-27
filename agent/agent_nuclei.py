@@ -365,11 +365,9 @@ class AgentNuclei(
                 subprocess.run(
                     command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True
                 )
+                self._parse_output()
             except subprocess.CalledProcessError as e:
                 logger.error("Error running nuclei %s", e)
-                continue
-
-            self._parse_output()
 
     def _should_process_target(self, scope_urls_regex: Optional[str], url: str) -> bool:
         if scope_urls_regex is None:
