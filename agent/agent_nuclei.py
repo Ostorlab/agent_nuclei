@@ -361,9 +361,13 @@ class AgentNuclei(
                     if path.exists(template):
                         command.extend(["-t", template])
 
-            subprocess.run(
-                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True
-            )
+            try:
+                subprocess.run(
+                    command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True
+                )
+            except subprocess.CalledProcessError as e:
+                logger.error("Error running nuclei %s", e)
+                continue
 
             self._parse_output()
 
