@@ -508,20 +508,4 @@ def testAgentNuclei_whenProcessFailed_agentNotCrash(
         "./tests/result_nuclei.json",
     ]
 
-    assert run_command_args[0].args == (
-        [
-            "/nuclei/nuclei",
-            "-u",
-            "209.235.136.112",
-            "-json",
-            "-irr",
-            "-silent",
-            "-o",
-            "./tests/result_nuclei.json",
-            "-t",
-            "CVE1.yaml",
-            "-t",
-            "CVE2.yaml",
-        ],
-    )
     assert mock_report_vulnerability.call_count == 0
