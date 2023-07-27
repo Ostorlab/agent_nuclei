@@ -1,4 +1,5 @@
 """Unittests for nuclei class."""
+import subprocess
 from typing import Dict
 from typing import List
 from unittest import mock
@@ -461,3 +462,40 @@ def testAgentNuclei_whenMacthedAtIsInvalid_reportVuln(
 
     assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
     assert agent_mock[0].data.get("vulnerability_location") is None
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
+def testAgentNuclei_whenProcessFailed_agentNotCrash(
+    requests_mock: rq_mock.mocker.Mocker,
+    scan_message: message.Message,
+    nuclei_agent_args: agent_nuclei.AgentNuclei,
+    agent_persist_mock: Dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Tests running the agent and parsing the json output."""
+    run_command_mock = mocker.patch(
+        "subprocess.run",
+        side_effect=subprocess.CalledProcessError(
+            1,
+            "/nuclei/nuclei -u 209.235.136.112 -json -irr -silent -o ./tests/result_nuclei.json-json -irr "
+            "-silent -o ./tests/result_nuclei.json",
+        ),
+    )
+    mocker.patch("os.path.exists", return_value=True)
+    requests_mock.get(
+        "https://raw.githubusercontent.com/Ostorlab/main/templates/CVE1.yaml",
+        content=b"test1",
+    )
+    requests_mock.get(
+        "https://raw.githubusercontent.com/Ostorlab/main/templates/CVE2.yaml",
+        content=b"test2",
+    )
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+    nuclei_agent_args.process(scan_message)
+
+    run_command_mock.assert_called()
+    run_command_args = run_command_mock.call_args_list
+    assert "/nuclei/nuclei" in run_command_args[1][0][0]
+    assert mock_report_vulnerability.call_count == 0
