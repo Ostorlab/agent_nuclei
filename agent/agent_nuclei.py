@@ -10,7 +10,7 @@ import tempfile
 from os import path
 from urllib import parse
 from copy import deepcopy
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, cast
 
 import requests
 from ostorlab.agent import agent
@@ -280,6 +280,7 @@ class AgentNuclei(
         if parsed_url.scheme not in SCHEME_TO_PORT:
             return None
         schema = parsed_url.scheme or self.args.get("schema")
+        schema = cast(str, schema)
         domain_name = parse.urlparse(url).netloc
         port = 0
         if len(parsed_url.netloc.split(":")) > 1:
@@ -289,7 +290,9 @@ class AgentNuclei(
                 and parsed_url.netloc.split(":")[-1] != ""
             ):
                 port = int(parsed_url.netloc.split(":")[-1])
-        port = port or SCHEME_TO_PORT.get(schema) or self.args.get("port")
+        args_port = self.args.get("port")
+        args_port = cast(int, args_port)
+        port = port or SCHEME_TO_PORT.get(schema) or args_port
         target = Target(name=domain_name, schema=schema, port=port)
         return target
 
