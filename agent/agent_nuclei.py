@@ -7,10 +7,10 @@ import pathlib
 import re
 import subprocess
 import tempfile
-from os import path
-from urllib import parse
 from copy import deepcopy
-from typing import Dict, List, Optional
+from os import path
+from typing import Dict, List, Optional, cast
+from urllib import parse
 
 import requests
 from ostorlab.agent import agent
@@ -22,10 +22,9 @@ from ostorlab.agent.mixins import agent_report_vulnerability_mixin
 from ostorlab.runtimes import definitions as runtime_definitions
 from rich import logging as rich_logging
 
-from agent import helpers
 from agent import formatters
+from agent import helpers
 from agent.vpn import wg_vpn
-
 
 FINDING_MAX_SIZE = 4096
 
@@ -236,15 +235,9 @@ class AgentNuclei(
     def _is_target_already_processed(self, message: m.Message) -> bool:
         """Checks if the target has already been processed before, relies on the redis server."""
         if message.data.get("url") is not None or message.data.get("name") is not None:
-            unicity_check_key: str = ""
-            if message.data.get("url") is not None:
-                target = self._get_target_from_url(message.data["url"])
-                unicity_check_key = f"{target.schema}_{target.name}_{target.port}"
-            elif message.data.get("name") is not None:
-                port = self._get_port(message)
-                schema = self._get_schema(message)
-                domain = message.data["name"]
-                unicity_check_key = f"{schema}_{domain}_{port}"
+            unicity_check_key = self._get_unique_check_key(message)
+            if unicity_check_key is None:
+                return False
 
             if self.set_add(b"agent_nuclei_asset", str(unicity_check_key)) is True:
                 return True
@@ -270,10 +263,26 @@ class AgentNuclei(
             logger.error("Unknown target %s", message)
             return True
 
-    def _get_target_from_url(self, url: str) -> Target:
-        """Compute schema and port from an URL"""
+    def _get_unique_check_key(self, message: m.Message) -> str | None:
+        """Compute a unique key for a target"""
+        if message.data.get("url") is not None:
+            target = self._get_target_from_url(message.data["url"])
+            if target is not None:
+                return f"{target.schema}_{target.name}_{target.port}"
+        elif message.data.get("name") is not None:
+            port = self._get_port(message)
+            schema = self._get_schema(message)
+            domain = message.data["name"]
+            return f"{schema}_{domain}_{port}"
+        return None
+
+    def _get_target_from_url(self, url: str) -> Target | None:
+        """Compute schema and port from a URL"""
         parsed_url = parse.urlparse(url)
+        if parsed_url.scheme not in SCHEME_TO_PORT:
+            return None
         schema = parsed_url.scheme or self.args.get("schema")
+        schema = cast(str, schema)
         domain_name = parse.urlparse(url).netloc
         port = 0
         if len(parsed_url.netloc.split(":")) > 1:
@@ -283,11 +292,9 @@ class AgentNuclei(
                 and parsed_url.netloc.split(":")[-1] != ""
             ):
                 port = int(parsed_url.netloc.split(":")[-1])
-        port = (
-            port
-            or int(str(SCHEME_TO_PORT.get(str(schema))))
-            or int(str(self.args.get("port")))
-        )
+        args_port = self.args.get("port")
+        args_port = cast(int, args_port)
+        port = port or SCHEME_TO_PORT.get(schema) or args_port
         target = Target(name=domain_name, schema=schema, port=port)
         return target
 
