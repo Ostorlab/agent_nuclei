@@ -7,10 +7,10 @@ import pathlib
 import re
 import subprocess
 import tempfile
-from os import path
-from urllib import parse
 from copy import deepcopy
+from os import path
 from typing import Dict, List, Optional, cast
+from urllib import parse
 
 import requests
 from ostorlab.agent import agent
@@ -22,10 +22,9 @@ from ostorlab.agent.mixins import agent_report_vulnerability_mixin
 from ostorlab.runtimes import definitions as runtime_definitions
 from rich import logging as rich_logging
 
-from agent import helpers
 from agent import formatters
+from agent import helpers
 from agent.vpn import wg_vpn
-
 
 FINDING_MAX_SIZE = 4096
 
@@ -70,9 +69,9 @@ class AgentNuclei(
     """Nuclei agent."""
 
     def __init__(
-        self,
-        agent_definition: agent_definitions.AgentDefinition,
-        agent_settings: runtime_definitions.AgentSettings,
+            self,
+            agent_definition: agent_definitions.AgentDefinition,
+            agent_settings: runtime_definitions.AgentSettings,
     ) -> None:
         agent.Agent.__init__(self, agent_definition, agent_settings)
         agent_persist_mixin.AgentPersistMixin.__init__(self, agent_settings)
@@ -200,7 +199,7 @@ class AgentNuclei(
                 )
 
     def _get_references(
-        self, template_info: Dict[str, Dict[str, List[str]]]
+            self, template_info: Dict[str, Dict[str, List[str]]]
     ) -> Dict[str, str]:
         """Generate dict references from nuclei references template"""
         references = {}
@@ -264,7 +263,7 @@ class AgentNuclei(
             logger.error("Unknown target %s", message)
             return True
 
-    def _get_unique_check_key(self, message) -> str | None:
+    def _get_unique_check_key(self, message: m.Message) -> str | None:
         """Compute a unique key for a target"""
         if message.data.get("url") is not None:
             target = self._get_target_from_url(message.data["url"])
@@ -289,8 +288,8 @@ class AgentNuclei(
         if len(parsed_url.netloc.split(":")) > 1:
             domain_name = parsed_url.netloc.split(":")[0]
             if (
-                len(parsed_url.netloc.split(":")) > 0
-                and parsed_url.netloc.split(":")[-1] != ""
+                    len(parsed_url.netloc.split(":")) > 0
+                    and parsed_url.netloc.split(":")[-1] != ""
             ):
                 port = int(parsed_url.netloc.split(":")[-1])
         args_port = self.args.get("port")
@@ -351,11 +350,11 @@ class AgentNuclei(
             return []
 
     def _run_command(
-        self, targets: List[str], templates: List[str] | None = None
+            self, targets: List[str], templates: List[str] | None = None
     ) -> None:
         """Run Nuclei command on the provided target using defined or default templates"""
         chunks = [
-            targets[x : x + MAX_TARGETS_COMMAND_LINE]
+            targets[x: x + MAX_TARGETS_COMMAND_LINE]
             for x in range(0, len(targets), MAX_TARGETS_COMMAND_LINE)
         ]
 
