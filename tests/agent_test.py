@@ -499,3 +499,24 @@ def testAgentNuclei_whenProcessFailed_agentNotCrash(
     run_command_args = run_command_mock.call_args_list
     assert "/nuclei/nuclei" in run_command_args[1][0][0]
     assert mock_report_vulnerability.call_count == 0
+
+
+def testAgentNuclei_whenMessageIsDomainWithUnsupportedSchema_shouldNotScan(
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    agent_mock: List[message.Message],
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Tests when the message is a domain with unsupported schema, the agent should not scan it."""
+
+    # Prepare
+    subprocess_mock = mocker.patch("subprocess.run", return_value=None)
+    input_selector = "v3.asset.link"
+    input_data = {"url": "mailto://me@google.com", "method": "GET"}
+    link_msg = message.Message.from_data(selector=input_selector, data=input_data)
+
+    # Act
+    nuclei_agent_no_url_scope.process(link_msg)
+
+    # Assert
+    assert len(agent_mock) == 0
+    assert subprocess_mock.call_count == 0
