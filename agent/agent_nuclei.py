@@ -69,9 +69,9 @@ class AgentNuclei(
     """Nuclei agent."""
 
     def __init__(
-            self,
-            agent_definition: agent_definitions.AgentDefinition,
-            agent_settings: runtime_definitions.AgentSettings,
+        self,
+        agent_definition: agent_definitions.AgentDefinition,
+        agent_settings: runtime_definitions.AgentSettings,
     ) -> None:
         agent.Agent.__init__(self, agent_definition, agent_settings)
         agent_persist_mixin.AgentPersistMixin.__init__(self, agent_settings)
@@ -199,7 +199,7 @@ class AgentNuclei(
                 )
 
     def _get_references(
-            self, template_info: Dict[str, Dict[str, List[str]]]
+        self, template_info: Dict[str, Dict[str, List[str]]]
     ) -> Dict[str, str]:
         """Generate dict references from nuclei references template"""
         references = {}
@@ -288,8 +288,8 @@ class AgentNuclei(
         if len(parsed_url.netloc.split(":")) > 1:
             domain_name = parsed_url.netloc.split(":")[0]
             if (
-                    len(parsed_url.netloc.split(":")) > 0
-                    and parsed_url.netloc.split(":")[-1] != ""
+                len(parsed_url.netloc.split(":")) > 0
+                and parsed_url.netloc.split(":")[-1] != ""
             ):
                 port = int(parsed_url.netloc.split(":")[-1])
         args_port = self.args.get("port")
@@ -350,11 +350,11 @@ class AgentNuclei(
             return []
 
     def _run_command(
-            self, targets: List[str], templates: List[str] | None = None
+        self, targets: List[str], templates: List[str] | None = None
     ) -> None:
         """Run Nuclei command on the provided target using defined or default templates"""
         chunks = [
-            targets[x: x + MAX_TARGETS_COMMAND_LINE]
+            targets[x : x + MAX_TARGETS_COMMAND_LINE]
             for x in range(0, len(targets), MAX_TARGETS_COMMAND_LINE)
         ]
 
