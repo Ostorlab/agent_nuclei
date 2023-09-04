@@ -130,7 +130,7 @@ def testAgentNuclei_whenDomainNameGiven_NotScan(
 
 
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
-def testAgentNuclei_whenTemplatesProvided(
+def testAgentNuclei_whenTemplatesProvided_scansAppWithTemplate(
     requests_mock: rq_mock.mocker.Mocker,
     scan_message: message.Message,
     nuclei_agent_args: agent_nuclei.AgentNuclei,
