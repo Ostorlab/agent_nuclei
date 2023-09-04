@@ -109,7 +109,6 @@ class AgentNuclei(
         ]
 
         logger.info("Scanning targets `%s`.", targets)
-
         if len(targets) > 0:
             templates_urls = self.args.get("template_urls")
             if templates_urls is not None:
