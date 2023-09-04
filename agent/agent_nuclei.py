@@ -108,6 +108,8 @@ class AgentNuclei(
             if self._should_process_target(self._scope_urls_regex, t) is True
         ]
 
+        logger.info("Scanning targets `%s`.", targets)
+
         if len(targets) > 0:
             templates_urls = self.args.get("template_urls")
             if templates_urls is not None:
@@ -164,7 +166,6 @@ class AgentNuclei(
                 nuclei_data_dict["info"].pop("author", None)
                 nuclei_data_dict["info"].pop("tags", None)
 
-                minified_data_dict = deepcopy(nuclei_data_dict)
                 minified_data_dict = formatters.minify_dict(
                     nuclei_data_dict, formatters.truncate
                 )
@@ -266,7 +267,7 @@ class AgentNuclei(
     def _get_unique_check_key(self, message: m.Message) -> str | None:
         """Compute a unique key for a target"""
         if message.data.get("url") is not None:
-            target = self._get_target_from_url(message.data["url"])
+            target = self._get_target_from_url(message)
             if target is not None:
                 return f"{target.schema}_{target.name}_{target.port}"
         elif message.data.get("name") is not None:
@@ -276,8 +277,9 @@ class AgentNuclei(
             return f"{schema}_{domain}_{port}"
         return None
 
-    def _get_target_from_url(self, url: str) -> Target | None:
+    def _get_target_from_url(self, message: m.Message) -> Target | None:
         """Compute schema and port from a URL"""
+        url = message.data["url"]
         parsed_url = parse.urlparse(url)
         if parsed_url.scheme not in SCHEME_TO_PORT:
             return None
@@ -292,7 +294,7 @@ class AgentNuclei(
                 and parsed_url.netloc.split(":")[-1] != ""
             ):
                 port = int(parsed_url.netloc.split(":")[-1])
-        args_port = self.args.get("port")
+        args_port = self._get_port(message)
         args_port = cast(int, args_port)
         port = port or SCHEME_TO_PORT.get(schema) or args_port
         target = Target(name=domain_name, schema=schema, port=port)
@@ -308,7 +310,10 @@ class AgentNuclei(
     def _get_schema(self, message: m.Message) -> str:
         """Returns the schema to be used for the target."""
         if message.data.get("schema") is not None:
-            return str(message.data["schema"])
+            if str(message.data["schema"]) in ['https?', 'ssl/https-alt?', 'ssl/https-alt', 'https-alt', 'https-alt?']:
+                return 'https'
+            else:
+                return str(message.data["schema"])
         elif message.data.get("protocol") is not None:
             return str(message.data["protocol"])
         elif self.args.get("https") is True:
@@ -330,7 +335,7 @@ class AgentNuclei(
 
         elif (domain_name := message.data.get("name")) is not None:
             schema = self._get_schema(message)
-            port = self.args.get("port")
+            port = self._get_port(message)
             if schema == "https" and port not in [443, None]:
                 url = f"https://{domain_name}:{port}"
             elif schema == "https":
