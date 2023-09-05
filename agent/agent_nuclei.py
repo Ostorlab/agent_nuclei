@@ -309,8 +309,14 @@ class AgentNuclei(
     def _get_schema(self, message: m.Message) -> str:
         """Returns the schema to be used for the target."""
         if message.data.get("schema") is not None:
-            if str(message.data["schema"]) in ['https?', 'ssl/https-alt?', 'ssl/https-alt', 'https-alt', 'https-alt?']:
-                return 'https'
+            if str(message.data["schema"]) in [
+                "https?",
+                "ssl/https-alt?",
+                "ssl/https-alt",
+                "https-alt",
+                "https-alt?",
+            ]:
+                return "https"
             else:
                 return str(message.data["schema"])
         elif message.data.get("protocol") is not None:
