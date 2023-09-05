@@ -293,7 +293,6 @@ class AgentNuclei(
             ):
                 port = int(parsed_url.netloc.split(":")[-1])
         args_port = self._get_port(message)
-        args_port = cast(int, args_port)
         port = port or SCHEME_TO_PORT.get(schema) or args_port
         target = Target(name=domain_name, schema=schema, port=port)
         return target
