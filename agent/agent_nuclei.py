@@ -7,7 +7,6 @@ import pathlib
 import re
 import subprocess
 import tempfile
-from copy import deepcopy
 from os import path
 from typing import Dict, List, Optional, cast
 from urllib import parse
