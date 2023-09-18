@@ -4,7 +4,7 @@ COPY requirement.txt /requirement.txt
 RUN pip install -r /requirement.txt
 RUN mkdir /nuclei
 WORKDIR /nuclei
-ARG NUCLEI_VERSION=2.9.6
+ARG NUCLEI_VERSION=2.9.15
 RUN wget https://github.com/projectdiscovery/nuclei/releases/download/v${NUCLEI_VERSION}/nuclei_${NUCLEI_VERSION}_linux_amd64.zip && \
   unzip nuclei_${NUCLEI_VERSION}_linux_amd64.zip
 RUN mkdir -p /app/agent
