@@ -520,3 +520,34 @@ def testAgentNuclei_whenMessageIsDomainWithUnsupportedSchema_shouldNotScan(
     # Assert
     assert len(agent_mock) == 0
     assert subprocess_mock.call_count == 0
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_critical.json")
+def testAgentNuclei_whenNucleiReportsCriticalFinding_emitsCriticalVulnerability(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    agent_persist_mock: Dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Tests running the agent and parsing the json output."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+    nuclei_agent_no_url_scope.process(scan_message)
+    mock_report_vulnerability.assert_called_once()
+    assert (
+        mock_report_vulnerability.call_args.kwargs["entry"].cvss_v3_vector
+        == "CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:N"
+    )
+    assert (
+        """Matched : `ats` at"""
+        in mock_report_vulnerability.call_args.kwargs["technical_detail"]
+    )
+    assert (
+        "Author" not in mock_report_vulnerability.call_args.kwargs["technical_detail"]
+    )
+    assert (
+        mock_report_vulnerability.call_args.kwargs["risk_rating"]
+        == agent_report_vulnerability_mixin.RiskRating.CRITICAL
+    )

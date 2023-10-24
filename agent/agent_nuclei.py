@@ -41,7 +41,7 @@ OUTPUT_PATH = "/tmp/result_nuclei.json"
 SCHEME_TO_PORT = {"http": 80, "https": 443}
 
 NUCLEI_RISK_MAPPING = {
-    "critical": agent_report_vulnerability_mixin.RiskRating.HIGH,
+    "critical": agent_report_vulnerability_mixin.RiskRating.CRITICAL,
     "high": agent_report_vulnerability_mixin.RiskRating.HIGH,
     "medium": agent_report_vulnerability_mixin.RiskRating.MEDIUM,
     "low": agent_report_vulnerability_mixin.RiskRating.LOW,
