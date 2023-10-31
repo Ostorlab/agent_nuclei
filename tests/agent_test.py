@@ -559,7 +559,6 @@ def testAgentNuclei_whenNucleiReportsCriticalFinding_emitsCriticalVulnerability(
 def testAgentNuclei_whenNucleiProcessLink_emitsTechnicalDetailWithLink(
     scan_message_link: message.Message,
     nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
-    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
     """Tests running the agent technical detail for link to have correct scheme."""
