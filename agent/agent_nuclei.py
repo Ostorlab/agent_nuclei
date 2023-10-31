@@ -116,11 +116,11 @@ class AgentNuclei(
                 self._run_command(targets)
         logger.info("Done processing message of selector : %s", message.selector)
 
-    def _parse_output(self, targets: list[str]) -> None:
+    def _parse_output(self) -> None:
         """Parse Nuclei Json output and emit the findings as vulnerabilities"""
         with open(OUTPUT_PATH, "r", encoding="UTF-8") as f:
             lines = f.readlines()
-            for line, target in zip(lines, targets):
+            for line in lines:
                 nuclei_data_dict = json.loads(line)
                 technical_detail = ""
                 matcher_status = nuclei_data_dict.get("matcher-status", False)
@@ -128,7 +128,7 @@ class AgentNuclei(
                 matched_at = nuclei_data_dict.get("matched-at")
                 if matcher_status is True and matcher_name is not None:
                     technical_detail += (
-                        f"""Matched : `{matcher_name}` at  [{target}]({target}) \n"""
+                        f"""Matched : `{matcher_name}` at  {matched_at}\n"""
                     )
 
                 template_info = nuclei_data_dict["info"]
@@ -381,7 +381,7 @@ class AgentNuclei(
                 subprocess.run(
                     command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True
                 )
-                self._parse_output(chunk)
+                self._parse_output()
             except subprocess.CalledProcessError as e:
                 logger.error("Error running nuclei %s", e)
 
