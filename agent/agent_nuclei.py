@@ -128,7 +128,7 @@ class AgentNuclei(
                 matched_at = nuclei_data_dict.get("matched-at")
                 if matcher_status is True and matcher_name is not None:
                     technical_detail += (
-                        f"""Matched : `{matcher_name}` at  `{matched_at}`\n"""
+                        f"""Matched : `{matcher_name}` at `{matched_at}`\n"""
                     )
 
                 template_info = nuclei_data_dict["info"]
