@@ -571,7 +571,7 @@ def testAgentNuclei_whenNucleiProcessLink_emitsTechnicalDetailWithLink(
 
     mock_report_vulnerability.assert_called_once()
     assert (
-        """Matched : `tls-1.1` at  `api.mixpanel.com:443`"""
+        """Matched : `tls-1.1` at `api.mixpanel.com:443`"""
         in mock_report_vulnerability.call_args.kwargs["technical_detail"]
     )
     assert (
