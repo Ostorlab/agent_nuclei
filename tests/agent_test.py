@@ -551,3 +551,33 @@ def testAgentNuclei_whenNucleiReportsCriticalFinding_emitsCriticalVulnerability(
         mock_report_vulnerability.call_args.kwargs["risk_rating"]
         == agent_report_vulnerability_mixin.RiskRating.CRITICAL
     )
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_low_weak_cipher.json"
+)
+def testAgentNuclei_whenNucleiProcessLink_emitsTechnicalDetailWithLink(
+    scan_message_link: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Tests running the agent technical detail for link to have correct scheme."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message_link)
+
+    mock_report_vulnerability.assert_called_once()
+    assert (
+        """Matched : `tls-1.1` at `api.mixpanel.com:443`"""
+        in mock_report_vulnerability.call_args.kwargs["technical_detail"]
+    )
+    assert (
+        "Author" not in mock_report_vulnerability.call_args.kwargs["technical_detail"]
+    )
+    assert (
+        mock_report_vulnerability.call_args.kwargs["risk_rating"]
+        == agent_report_vulnerability_mixin.RiskRating.LOW
+    )

@@ -127,7 +127,9 @@ class AgentNuclei(
                 matcher_name = nuclei_data_dict.get("matcher-name", None)
                 matched_at = nuclei_data_dict.get("matched-at")
                 if matcher_status is True and matcher_name is not None:
-                    technical_detail += f"""Matched : `{matcher_name}` at  [{matched_at}]({matched_at}) \n"""
+                    technical_detail += (
+                        f"""Matched : `{matcher_name}` at `{matched_at}`\n"""
+                    )
 
                 template_info = nuclei_data_dict["info"]
                 extracted_results = nuclei_data_dict.get("extracted-results", [])
@@ -365,7 +367,6 @@ class AgentNuclei(
             targets[x : x + MAX_TARGETS_COMMAND_LINE]
             for x in range(0, len(targets), MAX_TARGETS_COMMAND_LINE)
         ]
-
         for chunk in chunks:
             command = ["/nuclei/nuclei"]
             for item in chunk:
