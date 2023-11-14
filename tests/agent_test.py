@@ -591,7 +591,9 @@ def testAgentNuclei_whenSameMessageSentTwice_shouldScanOnlyOnce(
     mocker: plugin.MockerFixture,
 ) -> None:
     """Test nuclei agent should not scan the same message twice."""
-    prepare_target_mock = mocker.patch("agent.agent_nuclei.AgentNuclei._prepare_targets")
+    prepare_target_mock = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei._prepare_targets"
+    )
 
     nuclei_agent_args.process(scan_message)
     nuclei_agent_args.process(scan_message)
