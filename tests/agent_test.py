@@ -583,7 +583,6 @@ def testAgentNuclei_whenNucleiProcessLink_emitsTechnicalDetailWithLink(
     )
 
 
-# add a unit test for when same message is sent twice, it should scan only once
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "../tests/result_nuclei.json")
 def testAgentNuclei_whenSameMessageSentTwice_shouldScanOnlyOnce(
     scan_message: message.Message,
