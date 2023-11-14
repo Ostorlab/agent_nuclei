@@ -581,3 +581,20 @@ def testAgentNuclei_whenNucleiProcessLink_emitsTechnicalDetailWithLink(
         mock_report_vulnerability.call_args.kwargs["risk_rating"]
         == agent_report_vulnerability_mixin.RiskRating.LOW
     )
+
+
+# add a unit test for when same message is sent twice, it should scan only once
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "../tests/result_nuclei.json")
+def testAgentNuclei_whenSameMessageSentTwice_shouldScanOnlyOnce(
+    scan_message: message.Message,
+    nuclei_agent_args: agent_nuclei.AgentNuclei,
+    agent_persist_mock: Dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Tests running the agent and parsing the json output."""
+    prepare_target_mock = mocker.patch("agent.agent_nuclei.AgentNuclei._prepare_targets")
+
+    nuclei_agent_args.process(scan_message)
+    nuclei_agent_args.process(scan_message)
+
+    prepare_target_mock.assert_called_once()
