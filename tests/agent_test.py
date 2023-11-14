@@ -590,7 +590,7 @@ def testAgentNuclei_whenSameMessageSentTwice_shouldScanOnlyOnce(
     agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
-    """Tests running the agent and parsing the json output."""
+    """Test nuclei agent should not scan the same message twice."""
     prepare_target_mock = mocker.patch("agent.agent_nuclei.AgentNuclei._prepare_targets")
 
     nuclei_agent_args.process(scan_message)
