@@ -247,7 +247,7 @@ class AgentNuclei(
             mask = message.data.get("mask")
             if mask is not None:
                 addresses = ipaddress.ip_network(f"{host}/{mask}", strict=False)
-                return self.ip_network_exists("agent_nuclei_asset", addresses) is True
+                return self.ip_network_exists("agent_nuclei_asset", addresses)
             else:
                 return self.set_is_member("agent_nuclei_asset", host)
         else:
