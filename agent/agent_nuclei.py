@@ -249,7 +249,7 @@ class AgentNuclei(
                 addresses = ipaddress.ip_network(f"{host}/{mask}", strict=False)
                 return self.ip_network_exists("agent_nuclei_asset", addresses) is True
             else:
-                return self.set_is_member("agent_nuclei_asset", host) is True
+                return self.set_is_member("agent_nuclei_asset", host)
         else:
             logger.error("Unknown target %s", message)
             return True
