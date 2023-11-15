@@ -253,14 +253,9 @@ class AgentNuclei(
             mask = message.data.get("mask")
             if mask is not None:
                 addresses = ipaddress.ip_network(f"{host}/{mask}", strict=False)
-                if self.ip_network_exist("agent_nuclei_asset", addresses) is False:
-                    return False
+                return self.ip_network_exists("agent_nuclei_asset", addresses) is False
             else:
-                if self.set_is_member("agent_nuclei_asset", host) is False:
-                    return False
-
-            logger.info("target %s was processed before, exiting", host)
-            return True
+                return self.set_is_member("agent_nuclei_asset", host) is False
         else:
             logger.error("Unknown target %s", message)
             return True

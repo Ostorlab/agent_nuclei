@@ -583,9 +583,26 @@ def testAgentNuclei_whenNucleiProcessLink_emitsTechnicalDetailWithLink(
     )
 
 
+@pytest.mark.parametrize(
+    "test_message",
+    [
+        message.Message.from_data(
+            "v3.asset.ip.v4",
+            data={"host": "209.235.136.112", "mask": "32", "version": 4},
+        ),
+        message.Message.from_data(
+            "v3.asset.ip.v4",
+            data={"host": "209.235.136.112", "mask": "16", "version": 4},
+        ),
+        message.Message.from_data(
+            "v3.asset.link", data={"url": "https://apple.com", "method": "GET"}
+        ),
+        message.Message.from_data("v3.asset.domain_name", data={"name": "apple.com"}),
+    ],
+)
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "../tests/result_nuclei.json")
 def testAgentNuclei_whenSameMessageSentTwice_shouldScanOnlyOnce(
-    scan_message: message.Message,
+    test_message: message.Message,
     nuclei_agent_args: agent_nuclei.AgentNuclei,
     agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
@@ -595,7 +612,7 @@ def testAgentNuclei_whenSameMessageSentTwice_shouldScanOnlyOnce(
         "agent.agent_nuclei.AgentNuclei._prepare_targets"
     )
 
-    nuclei_agent_args.process(scan_message)
-    nuclei_agent_args.process(scan_message)
+    nuclei_agent_args.process(test_message)
+    nuclei_agent_args.process(test_message)
 
     prepare_target_mock.assert_called_once()
