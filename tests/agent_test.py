@@ -616,3 +616,22 @@ def testAgentNuclei_whenSameMessageSentTwice_shouldScanOnlyOnce(
     nuclei_agent_args.process(test_message)
 
     prepare_target_mock.assert_called_once()
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "../tests/result_nuclei.json")
+def testAgentNuclei_whenUnknownTarget_shouldntBeProcessed(
+    nuclei_agent_args: agent_nuclei.AgentNuclei,
+    agent_persist_mock: Dict[str | bytes, str | bytes],
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Test nuclei agent should not scan message with unknown target."""
+    prepare_target_mock = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei._prepare_targets"
+    )
+    msg = message.Message.from_data(
+        "v3.asset.file", data={"path": "libagora-crypto.so"}
+    )
+
+    nuclei_agent_args.process(msg)
+
+    prepare_target_mock.assert_not_called()

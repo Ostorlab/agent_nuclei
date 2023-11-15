@@ -241,21 +241,15 @@ class AgentNuclei(
             if unicity_check_key is None:
                 return True
 
-            if self.set_is_member("agent_nuclei_asset", unicity_check_key) is False:
-                return False
-            else:
-                logger.info(
-                    "target %s/ was processed before, exiting", unicity_check_key
-                )
-                return True
+            return self.set_is_member("agent_nuclei_asset", unicity_check_key) is True
         elif message.data.get("host") is not None:
             host = str(message.data.get("host"))
             mask = message.data.get("mask")
             if mask is not None:
                 addresses = ipaddress.ip_network(f"{host}/{mask}", strict=False)
-                return self.ip_network_exists("agent_nuclei_asset", addresses) is False
+                return self.ip_network_exists("agent_nuclei_asset", addresses) is True
             else:
-                return self.set_is_member("agent_nuclei_asset", host) is False
+                return self.set_is_member("agent_nuclei_asset", host) is True
         else:
             logger.error("Unknown target %s", message)
             return True
