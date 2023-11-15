@@ -241,7 +241,7 @@ class AgentNuclei(
             if unicity_check_key is None:
                 return True
 
-            return self.set_is_member("agent_nuclei_asset", unicity_check_key) 
+            return self.set_is_member("agent_nuclei_asset", unicity_check_key)
         elif message.data.get("host") is not None:
             host = str(message.data.get("host"))
             mask = message.data.get("mask")
