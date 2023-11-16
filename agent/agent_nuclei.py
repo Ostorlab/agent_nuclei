@@ -96,7 +96,7 @@ class AgentNuclei(
 
         """
         logger.info("processing message of selector : %s", message.selector)
-        if self._is_target_already_processed(message) is False:
+        if self._is_target_already_processed(message) is True:
             return
 
         targets = self._prepare_targets(message)
@@ -114,6 +114,7 @@ class AgentNuclei(
                 self._run_templates(templates_urls, targets)
             if self.args.get("use_default_templates", True):
                 self._run_command(targets)
+        self._mark_target_as_processed(message)
         logger.info("Done processing message of selector : %s", message.selector)
 
     def _parse_output(self) -> None:
@@ -238,31 +239,40 @@ class AgentNuclei(
         if message.data.get("url") is not None or message.data.get("name") is not None:
             unicity_check_key = self._get_unique_check_key(message)
             if unicity_check_key is None:
-                return False
-
-            if self.set_add(b"agent_nuclei_asset", str(unicity_check_key)) is True:
                 return True
-            else:
-                logger.info(
-                    "target %s/ was processed before, exiting", unicity_check_key
-                )
-                return False
+
+            return self.set_is_member("agent_nuclei_asset", unicity_check_key)
         elif message.data.get("host") is not None:
             host = str(message.data.get("host"))
             mask = message.data.get("mask")
             if mask is not None:
                 addresses = ipaddress.ip_network(f"{host}/{mask}", strict=False)
-                result = self.add_ip_network("agent_nuclei_asset", addresses)
-                if result is False:
-                    logger.info("target %s was processed before, exiting", addresses)
+                return self.ip_network_exists("agent_nuclei_asset", addresses)
             else:
-                result = self.set_add("agent_nuclei_asset", host)
-                if result is False:
-                    logger.info("target %s was processed before, exiting", host)
-            return result
+                return self.set_is_member("agent_nuclei_asset", host)
         else:
             logger.error("Unknown target %s", message)
             return True
+
+    def _mark_target_as_processed(self, message: m.Message) -> None:
+        """Mark the target as processed, relies on the redis server."""
+        if message.data.get("url") is not None or message.data.get("name") is not None:
+            unicity_check_key = self._get_unique_check_key(message)
+            if unicity_check_key is None:
+                return
+
+            self.set_add("agent_nuclei_asset", unicity_check_key)
+        elif message.data.get("host") is not None:
+            host = str(message.data.get("host"))
+            mask = message.data.get("mask")
+            if mask is not None:
+                addresses = ipaddress.ip_network(f"{host}/{mask}", strict=False)
+                self.add_ip_network("agent_nuclei_asset", addresses)
+            else:
+                self.set_add("agent_nuclei_asset", host)
+        else:
+            logger.error("Unknown target %s", message)
+            return
 
     def _get_unique_check_key(self, message: m.Message) -> str | None:
         """Compute a unique key for a target"""
