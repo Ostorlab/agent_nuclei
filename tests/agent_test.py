@@ -635,3 +635,38 @@ def testAgentNuclei_whenUnknownTarget_shouldntBeProcessed(
     nuclei_agent_args.process(msg)
 
     prepare_target_mock.assert_not_called()
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_empty.json")
+def testAgentNuclei_whenBasicCredentialProvided_shouldRunCommandWithBasicAuthHeader(
+    scan_message_link_with_basic_credential: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Ensure that AgentNuclei runs the nuclei command with the basic Auth header when basic credentials are given."""
+    run_command_mock = mocker.patch("subprocess.run", return_value=None)
+    nuclei_agent_no_url_scope.process(scan_message_link_with_basic_credential)
+    run_command_mock.assert_called()
+    run_command_args = run_command_mock.call_args_list
+
+    assert "-H" in run_command_args[0].args[0]
+    assert (
+        "Authorization: Basic dXNlcm5hbWU6ZHVtbXlfdmFsdWU="
+        in run_command_args[0].args[0]
+    )
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_empty.json")
+def testAgentNuclei_whenBasicCredentialNotProvided_shouldRunCommandWithoutBasicAuthHeader(
+    scan_message_link_2: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Ensure that AgentNuclei runs the nuclei command without a basic Auth header when basic credentials are not
+    given."""
+    run_command_mock = mocker.patch("subprocess.run", return_value=None)
+    nuclei_agent_no_url_scope.process(scan_message_link_2)
+    run_command_mock.assert_called()
+    run_command_args = run_command_mock.call_args_list
+
+    assert "-H" not in run_command_args[0].args[0]

@@ -145,3 +145,16 @@ def ip_small_range_message() -> message.Message:
     selector = "v3.asset.ip.v4"
     msg_data = {"host": "42.42.42.42", "mask": "31", "version": 4}
     return message.Message.from_data(selector, data=msg_data)
+
+
+@pytest.fixture
+def scan_message_link_with_basic_credential() -> message.Message:
+    """Creates a dummy message of type v3.asset.link with basic_credential to be used by the agent for testing
+    purposes."""
+    selector = "v3.asset.link"
+    msg_data = {
+        "url": "https://example.com",
+        "method": "GET",
+        "basic_credential": {"login": "username", "password": "dummy_value"},
+    }
+    return message.Message.from_data(selector, data=msg_data)

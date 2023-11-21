@@ -10,6 +10,7 @@ import tempfile
 from os import path
 from typing import Dict, List, Optional, cast
 from urllib import parse
+import base64
 
 import requests
 from ostorlab.agent import agent
@@ -60,6 +61,39 @@ class Target:
     port: Optional[int] = None
 
 
+@dataclasses.dataclass
+class BasicCredential:
+    """Credential for form-based authentication passing password and login."""
+
+    def __init__(self, login: str, password: str) -> None:
+        self.login = login
+        self.password = password
+
+    @property
+    def basic_auth_header(self) -> str:
+        credentials = f"{self.login}:{self.password}"
+
+        encoded_credentials = base64.b64encode(credentials.encode("utf-8")).decode(
+            "utf-8"
+        )
+
+        auth_header = f"Authorization: Basic {encoded_credentials}"
+        return auth_header
+
+
+def build_basic_credential_from_message(message: m.Message) -> BasicCredential | None:
+    basic_credential = message.data.get("basic_credential")
+    if basic_credential is None:
+        return None
+    login = basic_credential.get("login")
+    if login is None:
+        return None
+    password = basic_credential.get("password", "")
+    if password is None:
+        return None
+    return BasicCredential(login=login, password=password)
+
+
 class AgentNuclei(
     agent.Agent,
     agent_report_vulnerability_mixin.AgentReportVulnMixin,
@@ -78,6 +112,7 @@ class AgentNuclei(
         self._scope_urls_regex: Optional[str] = self.args.get("scope_urls_regex")
         self._vpn_config: Optional[str] = self.args.get("vpn_config")
         self._dns_config: Optional[str] = self.args.get("dns_config")
+        self._basic_auth_header: Optional[str] = None
 
     def start(self) -> None:
         """Enable VPN configuration at the beginning if needed."""
@@ -108,6 +143,10 @@ class AgentNuclei(
         ]
 
         logger.info("Scanning targets `%s`.", targets)
+
+        basic_credential = build_basic_credential_from_message(message)
+        if basic_credential is not None:
+            self._basic_auth_header = basic_credential.basic_auth_header
         if len(targets) > 0:
             templates_urls = self.args.get("template_urls")
             if templates_urls is not None:
@@ -387,6 +426,8 @@ class AgentNuclei(
                     if path.exists(template):
                         command.extend(["-t", template])
 
+            if self._basic_auth_header is not None:
+                command.extend(["-H", self._basic_auth_header])
             try:
                 subprocess.run(
                     command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True
