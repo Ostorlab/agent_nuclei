@@ -94,6 +94,21 @@ def build_basic_credential_from_message(message: m.Message) -> BasicCredential |
     return BasicCredential(login=login, password=password)
 
 
+def build_basic_credential_from_args(
+    basic_credentials: list[dict[str, str]] | None,
+) -> list[BasicCredential]:
+    credentials = []
+    if basic_credentials is not None:
+        for credential in basic_credentials:
+            credentials.append(
+                BasicCredential(
+                    login=credential["login"],
+                    password=credential["password"],
+                )
+            )
+    return credentials
+
+
 class AgentNuclei(
     agent.Agent,
     agent_report_vulnerability_mixin.AgentReportVulnMixin,
@@ -112,7 +127,7 @@ class AgentNuclei(
         self._scope_urls_regex: Optional[str] = self.args.get("scope_urls_regex")
         self._vpn_config: Optional[str] = self.args.get("vpn_config")
         self._dns_config: Optional[str] = self.args.get("dns_config")
-        self._basic_auth_header: str | None = None
+        self._basic_credentials: list[BasicCredential] = []
 
     def start(self) -> None:
         """Enable VPN configuration at the beginning if needed."""
@@ -146,7 +161,11 @@ class AgentNuclei(
 
         basic_credential = build_basic_credential_from_message(message)
         if basic_credential is not None:
-            self._basic_auth_header = basic_credential.header
+            self._basic_credentials = [basic_credential]
+        else:
+            self._basic_credentials = build_basic_credential_from_args(
+                self.args.get("basic_credentials")
+            )
         if len(targets) > 0:
             templates_urls = self.args.get("template_urls")
             if templates_urls is not None:
@@ -426,15 +445,31 @@ class AgentNuclei(
                     if path.exists(template):
                         command.extend(["-t", template])
 
-            if self._basic_auth_header is not None:
-                command.extend(["-H", self._basic_auth_header])
-            try:
-                subprocess.run(
-                    command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True
-                )
-                self._parse_output()
-            except subprocess.CalledProcessError as e:
-                logger.error("Error running nuclei %s", e)
+            if len(self._basic_credentials) == 0:
+                self._run_nuclei_command(command)
+            else:
+                for basic_credential in self._basic_credentials:
+                    self._run_nuclei_with_basic_credentials(
+                        command.copy(), basic_credential
+                    )
+
+    def _run_nuclei_command(self, command: list[str]) -> None:
+        try:
+            subprocess.run(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=True,
+            )
+            self._parse_output()
+        except subprocess.CalledProcessError as e:
+            logger.error("Error running nuclei %s", e)
+
+    def _run_nuclei_with_basic_credentials(
+        self, command: list[str], basic_credential: BasicCredential
+    ) -> None:
+        command.extend(["-H", basic_credential.header])
+        self._run_nuclei_command(command)
 
     def _should_process_target(self, scope_urls_regex: Optional[str], url: str) -> bool:
         if scope_urls_regex is None:
