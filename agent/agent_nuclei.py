@@ -63,14 +63,14 @@ class Target:
 
 @dataclasses.dataclass
 class BasicCredential:
-    """Credential for form-based authentication passing password and login."""
+    """Credential for basic authentication passing password and login."""
 
     def __init__(self, login: str, password: str) -> None:
         self.login = login
         self.password = password
 
     @property
-    def basic_auth_header(self) -> str:
+    def header(self) -> str:
         credentials = f"{self.login}:{self.password}"
 
         encoded_credentials = base64.b64encode(credentials.encode("utf-8")).decode(
@@ -146,7 +146,7 @@ class AgentNuclei(
 
         basic_credential = build_basic_credential_from_message(message)
         if basic_credential is not None:
-            self._basic_auth_header = basic_credential.basic_auth_header
+            self._basic_auth_header = basic_credential.header
         if len(targets) > 0:
             templates_urls = self.args.get("template_urls")
             if templates_urls is not None:
