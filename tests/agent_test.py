@@ -676,7 +676,7 @@ def testAgentNuclei_whenBasicCredentialNotProvided_shouldRunCommandWithoutBasicA
 
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_empty.json")
 def testAgentNuclei_whenBasicCredentialProvidedFromArgs_shouldRunCommandWithBasicAuthHeader(
-    scan_message_link_with_basic_credential: message.Message,
+    scan_message_link_2: message.Message,
     nuclei_agent_with_basic_credentials: agent_nuclei.AgentNuclei,
     mocker: plugin.MockerFixture,
 ) -> None:
@@ -684,10 +684,11 @@ def testAgentNuclei_whenBasicCredentialProvidedFromArgs_shouldRunCommandWithBasi
     from args."""
     run_command_mock = mocker.patch("subprocess.run", return_value=None)
 
-    nuclei_agent_with_basic_credentials.process(scan_message_link_with_basic_credential)
+    nuclei_agent_with_basic_credentials.process(scan_message_link_2)
 
     run_command_mock.assert_called()
     run_command_args = run_command_mock.call_args_list
+    assert "-H" in run_command_args[0].args[0]
     assert "-H" in run_command_args[0].args[0]
     assert (
         "Authorization: Basic dXNlcm5hbWU6ZHVtbXlfdmFsdWU="
