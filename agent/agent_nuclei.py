@@ -88,7 +88,7 @@ def build_basic_credential_from_message(message: m.Message) -> BasicCredential |
     login = basic_credential.get("login")
     if login is None:
         return None
-    password = basic_credential.get("password", "")
+    password = basic_credential.get("password")
     if password is None:
         return None
     return BasicCredential(login=login, password=password)
