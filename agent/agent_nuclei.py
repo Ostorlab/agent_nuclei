@@ -112,7 +112,7 @@ class AgentNuclei(
         self._scope_urls_regex: Optional[str] = self.args.get("scope_urls_regex")
         self._vpn_config: Optional[str] = self.args.get("vpn_config")
         self._dns_config: Optional[str] = self.args.get("dns_config")
-        self._basic_auth_header: Optional[str] = None
+        self._basic_auth_header: str | None = None
 
     def start(self) -> None:
         """Enable VPN configuration at the beginning if needed."""
