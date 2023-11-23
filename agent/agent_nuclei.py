@@ -81,31 +81,34 @@ class BasicCredential:
         return auth_header
 
 
-def build_basic_credential_from_message(message: m.Message) -> BasicCredential | None:
+def build_basic_credential_from_message(
+    message: m.Message,
+) -> list[BasicCredential]:
     basic_credential = message.data.get("basic_credential")
     if basic_credential is None:
-        return None
+        return []
     login = basic_credential.get("login")
     if login is None:
-        return None
+        return []
     password = basic_credential.get("password")
     if password is None:
-        return None
-    return BasicCredential(login=login, password=password)
+        return []
+    return [BasicCredential(login=login, password=password)]
 
 
 def build_basic_credential_from_args(
     basic_credentials: list[dict[str, str]] | None,
 ) -> list[BasicCredential]:
+    if basic_credentials is None:
+        return []
     credentials = []
-    if basic_credentials is not None:
-        for credential in basic_credentials:
-            credentials.append(
-                BasicCredential(
-                    login=credential["login"],
-                    password=credential["password"],
-                )
+    for credential in basic_credentials:
+        credentials.append(
+            BasicCredential(
+                login=credential["login"],
+                password=credential["password"],
             )
+        )
     return credentials
 
 
@@ -159,13 +162,9 @@ class AgentNuclei(
 
         logger.info("Scanning targets `%s`.", targets)
 
-        basic_credential = build_basic_credential_from_message(message)
-        if basic_credential is not None:
-            self._basic_credentials = [basic_credential]
-        else:
-            self._basic_credentials = build_basic_credential_from_args(
-                self.args.get("basic_credentials")
-            )
+        self._basic_credentials = build_basic_credential_from_message(
+            message
+        ) or build_basic_credential_from_args(self.args.get("basic_credentials"))
         if len(targets) > 0:
             templates_urls = self.args.get("template_urls")
             if templates_urls is not None:
@@ -449,11 +448,13 @@ class AgentNuclei(
                 self._run_nuclei_command(command)
             else:
                 for basic_credential in self._basic_credentials:
-                    self._run_nuclei_with_basic_credentials(
-                        command.copy(), basic_credential
-                    )
+                    self._run_nuclei_command(command.copy(), basic_credential)
 
-    def _run_nuclei_command(self, command: list[str]) -> None:
+    def _run_nuclei_command(
+        self, command: list[str], basic_credential: BasicCredential | None = None
+    ) -> None:
+        if basic_credential is not None:
+            command.extend(["-H", basic_credential.header])
         try:
             subprocess.run(
                 command,
@@ -464,12 +465,6 @@ class AgentNuclei(
             self._parse_output()
         except subprocess.CalledProcessError as e:
             logger.error("Error running nuclei %s", e)
-
-    def _run_nuclei_with_basic_credentials(
-        self, command: list[str], basic_credential: BasicCredential
-    ) -> None:
-        command.extend(["-H", basic_credential.header])
-        self._run_nuclei_command(command)
 
     def _should_process_target(self, scope_urls_regex: Optional[str], url: str) -> bool:
         if scope_urls_regex is None:
