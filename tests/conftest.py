@@ -201,7 +201,7 @@ def nuclei_agent_with_custom_templates(
         definition.args = [
             {
                 "name": "template_urls",
-                "value": ["https://template1.com", "https://template2.com"],
+                "value": ["https://template1.yaml", "https://template2.yaml"],
             }
         ]
         settings = runtime_definitions.AgentSettings(

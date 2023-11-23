@@ -698,16 +698,26 @@ def testAgentNuclei_withCustomTemplates_RunScan(
     requests_mock: rq_mock.mocker.Mocker,
 ) -> None:
     """Tests running the agent when templates are provided."""
-    subprocess_mock = mocker.patch("subprocess.run", return_value=None)
+    run_command_mock = mocker.patch("subprocess.run", return_value=None)
     mocker.patch(
         "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
     )
-    requests_mock.get("https://template1.com", json={})
-    requests_mock.get("https://template2.com", json={})
+    requests_mock.get("https://template1.yaml", json={})
+    requests_mock.get("https://template2.yaml", json={})
 
     nuclei_agent_with_custom_templates.process(scan_message)
 
-    assert "-t" in subprocess_mock.call_args_list[0][0][0][8]
-    assert "template1.com" in subprocess_mock.call_args_list[0][0][0][9]
-    assert "-t" in subprocess_mock.call_args_list[0][0][0][10]
-    assert "template2.com" in subprocess_mock.call_args_list[0][0][0][11]
+    run_command_args = run_command_mock.call_args_list
+    command = " ".join(run_command_args[0].args[0])
+    assert "/nuclei/nuclei" in command
+    assert "-u" in command
+    assert "209.235.136.112" in command
+    assert "-j" in command
+    assert "-irr" in command
+    assert "-silent" in command
+    assert "-o" in command
+    assert "./tests/result_nuclei.json" in command
+    assert "-t" in command
+    assert "template1.yaml" in command
+    assert "-t" in command
+    assert "template2.yaml" in command
