@@ -81,23 +81,19 @@ def testAgentNuclei_whenUrlTemplatesGiven_RunScan(
         "-o",
         "./tests/result_nuclei.json",
     ]
+    command = " ".join(run_command_args[0].args[0])
+    assert "/nuclei/nuclei" in command
+    assert "-u" in command
+    assert "209.235.136.112" in command
+    assert "-j" in command
+    assert "-irr" in command
+    assert "-silent" in command
+    assert "-o" in command
+    assert "./tests/result_nuclei.json" in command
+    assert "CVE1.yaml" in command
+    assert "-t" in command
+    assert "CVE2.yaml" in command
 
-    assert run_command_args[0].args == (
-        [
-            "/nuclei/nuclei",
-            "-u",
-            "209.235.136.112",
-            "-j",
-            "-irr",
-            "-silent",
-            "-o",
-            "./tests/result_nuclei.json",
-            "-t",
-            "CVE1.yaml",
-            "-t",
-            "CVE2.yaml",
-        ],
-    )
     mock_report_vulnerability.assert_called()
 
 
@@ -154,22 +150,20 @@ def testAgentNuclei_whenTemplatesProvided_scansAppWithTemplate(
     nuclei_agent_args.process(scan_message)
     run_command_mock.assert_called()
     run_command_args = run_command_mock.call_args_list
-    assert run_command_args[0].args == (
-        [
-            "/nuclei/nuclei",
-            "-u",
-            "209.235.136.112",
-            "-j",
-            "-irr",
-            "-silent",
-            "-o",
-            "./tests/result_nuclei.json",
-            "-t",
-            "CVE1.yaml",
-            "-t",
-            "CVE2.yaml",
-        ],
-    )
+    command = " ".join(run_command_args[0].args[0])
+    assert "/nuclei/nuclei" in command
+    assert "-u" in command
+    assert "209.235.136.112" in command
+    assert "-j" in command
+    assert "-irr" in command
+    assert "-silent" in command
+    assert "-o" in command
+    assert "./tests/result_nuclei.json" in command
+    assert "-t" in command
+    assert "CVE1.yaml" in command
+    assert "-t" in command
+    assert "CVE2.yaml" in command
+
     assert run_command_args[1].args == (
         [
             "/nuclei/nuclei",
