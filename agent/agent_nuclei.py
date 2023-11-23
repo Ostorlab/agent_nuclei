@@ -448,13 +448,9 @@ class AgentNuclei(
                 self._run_nuclei_command(command)
             else:
                 for basic_credential in self._basic_credentials:
-                    self._run_nuclei_command(command.copy(), basic_credential)
+                    self._run_nuclei_command([*command, "-H", basic_credential.header])
 
-    def _run_nuclei_command(
-        self, command: list[str], basic_credential: BasicCredential | None = None
-    ) -> None:
-        if basic_credential is not None:
-            command.extend(["-H", basic_credential.header])
+    def _run_nuclei_command(self, command: list[str]) -> None:
         try:
             subprocess.run(
                 command,
