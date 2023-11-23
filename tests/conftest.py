@@ -145,3 +145,48 @@ def ip_small_range_message() -> message.Message:
     selector = "v3.asset.ip.v4"
     msg_data = {"host": "42.42.42.42", "mask": "31", "version": 4}
     return message.Message.from_data(selector, data=msg_data)
+
+
+@pytest.fixture
+def scan_message_link_with_basic_credential() -> message.Message:
+    """Creates a dummy message of type v3.asset.link with basic_credential to be used by the agent for testing
+    purposes."""
+    selector = "v3.asset.link"
+    msg_data = {
+        "url": "https://example.com",
+        "method": "GET",
+        "basic_credential": {"login": "username", "password": "dummy_value"},
+    }
+    return message.Message.from_data(selector, data=msg_data)
+
+
+@pytest.fixture
+def nuclei_agent_with_basic_credentials(
+    agent_persist_mock: Dict[str | bytes, str | bytes]
+) -> agent_nuclei.AgentNuclei:
+    with (pathlib.Path(__file__).parent.parent / "ostorlab.yaml").open() as yaml_o:
+        definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
+        settings = runtime_definitions.AgentSettings(
+            key="agent/ostorlab/nuclei",
+            bus_url="NA",
+            bus_exchange_topic="NA",
+            args=[
+                utils_definitions.Arg(
+                    name="basic_credentials",
+                    type="array",
+                    value=json.dumps(
+                        [
+                            {
+                                "login": "username",
+                                "password": "dummy_value",
+                            },
+                        ]
+                    ).encode(),
+                )
+            ],
+            healthcheck_port=random.randint(5000, 6000),
+            redis_url="redis://guest:guest@localhost:6379",
+        )
+
+        agent_object = agent_nuclei.AgentNuclei(definition, settings)
+        return agent_object
