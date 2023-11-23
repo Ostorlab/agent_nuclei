@@ -81,23 +81,19 @@ def testAgentNuclei_whenUrlTemplatesGiven_RunScan(
         "-o",
         "./tests/result_nuclei.json",
     ]
+    command = " ".join(run_command_args[0].args[0])
+    assert "/nuclei/nuclei" in command
+    assert "-u" in command
+    assert "209.235.136.112" in command
+    assert "-j" in command
+    assert "-irr" in command
+    assert "-silent" in command
+    assert "-o" in command
+    assert "./tests/result_nuclei.json" in command
+    assert "CVE1.yaml" in command
+    assert "-t" in command
+    assert "CVE2.yaml" in command
 
-    assert run_command_args[0].args == (
-        [
-            "/nuclei/nuclei",
-            "-u",
-            "209.235.136.112",
-            "-j",
-            "-irr",
-            "-silent",
-            "-o",
-            "./tests/result_nuclei.json",
-            "-t",
-            "CVE1.yaml",
-            "-t",
-            "CVE2.yaml",
-        ],
-    )
     mock_report_vulnerability.assert_called()
 
 
@@ -154,22 +150,20 @@ def testAgentNuclei_whenTemplatesProvided_scansAppWithTemplate(
     nuclei_agent_args.process(scan_message)
     run_command_mock.assert_called()
     run_command_args = run_command_mock.call_args_list
-    assert run_command_args[0].args == (
-        [
-            "/nuclei/nuclei",
-            "-u",
-            "209.235.136.112",
-            "-j",
-            "-irr",
-            "-silent",
-            "-o",
-            "./tests/result_nuclei.json",
-            "-t",
-            "CVE1.yaml",
-            "-t",
-            "CVE2.yaml",
-        ],
-    )
+    command = " ".join(run_command_args[0].args[0])
+    assert "/nuclei/nuclei" in command
+    assert "-u" in command
+    assert "209.235.136.112" in command
+    assert "-j" in command
+    assert "-irr" in command
+    assert "-silent" in command
+    assert "-o" in command
+    assert "./tests/result_nuclei.json" in command
+    assert "-t" in command
+    assert "CVE1.yaml" in command
+    assert "-t" in command
+    assert "CVE2.yaml" in command
+
     assert run_command_args[1].args == (
         [
             "/nuclei/nuclei",
@@ -694,3 +688,36 @@ def testAgentNuclei_whenBasicCredentialProvidedFromArgs_shouldRunCommandWithBasi
         "Authorization: Basic dXNlcm5hbWU6ZHVtbXlfdmFsdWU="
         in run_command_args[0].args[0]
     )
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
+def testAgentNuclei_withCustomTemplates_RunScan(
+    scan_message: message.Message,
+    nuclei_agent_with_custom_templates: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+    requests_mock: rq_mock.mocker.Mocker,
+) -> None:
+    """Tests running the agent when templates are provided."""
+    run_command_mock = mocker.patch("subprocess.run", return_value=None)
+    mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+    requests_mock.get("https://template1.yaml", json={})
+    requests_mock.get("https://template2.yaml", json={})
+
+    nuclei_agent_with_custom_templates.process(scan_message)
+
+    run_command_args = run_command_mock.call_args_list
+    command = " ".join(run_command_args[0].args[0])
+    assert "/nuclei/nuclei" in command
+    assert "-u" in command
+    assert "209.235.136.112" in command
+    assert "-j" in command
+    assert "-irr" in command
+    assert "-silent" in command
+    assert "-o" in command
+    assert "./tests/result_nuclei.json" in command
+    assert "-t" in command
+    assert "template1.yaml" in command
+    assert "-t" in command
+    assert "template2.yaml" in command

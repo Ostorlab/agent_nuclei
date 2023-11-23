@@ -190,3 +190,28 @@ def nuclei_agent_with_basic_credentials(
 
         agent_object = agent_nuclei.AgentNuclei(definition, settings)
         return agent_object
+
+
+@pytest.fixture
+def nuclei_agent_with_custom_templates(
+    agent_persist_mock: Dict[str | bytes, str | bytes]
+) -> agent_nuclei.AgentNuclei:
+    with (pathlib.Path(__file__).parent.parent / "ostorlab.yaml").open() as yaml_o:
+        definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
+        definition.args = [
+            {
+                "name": "template_urls",
+                "value": ["https://template1.yaml", "https://template2.yaml"],
+            }
+        ]
+        settings = runtime_definitions.AgentSettings(
+            key="agent/ostorlab/nuclei",
+            bus_url="NA",
+            bus_exchange_topic="NA",
+            args=[],
+            healthcheck_port=random.randint(5000, 6000),
+            redis_url="redis://guest:guest@localhost:6379",
+        )
+
+        agent_object = agent_nuclei.AgentNuclei(definition, settings)
+        return agent_object
