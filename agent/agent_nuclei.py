@@ -229,7 +229,7 @@ class AgentNuclei(
                 r = requests.get(url, allow_redirects=True, timeout=60)
                 with (file_path / url.split("/")[-1]).open(mode="wb") as f:
                     f.write(r.content)
-                templates.append((file_path / url.split("/")[-1]).name)
+                templates.append(str((file_path / url.split("/")[-1])))
 
             if len(templates) > 0:
                 self._run_command(targets, templates)

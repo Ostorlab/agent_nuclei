@@ -635,3 +635,26 @@ def testAgentNuclei_whenUnknownTarget_shouldntBeProcessed(
     nuclei_agent_args.process(msg)
 
     prepare_target_mock.assert_not_called()
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
+def testAgentNuclei_withCustomTemplates_RunScan(
+    scan_message: message.Message,
+    nuclei_agent_with_custom_templates: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+    requests_mock: rq_mock.mocker.Mocker,
+) -> None:
+    """Tests running the agent when templates are provided."""
+    subprocess_mock = mocker.patch("subprocess.run", return_value=None)
+    mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+    requests_mock.get("https://template1.com", json={})
+    requests_mock.get("https://template2.com", json={})
+
+    nuclei_agent_with_custom_templates.process(scan_message)
+
+    assert "-t" in subprocess_mock.call_args_list[0][0][0][8]
+    assert "template1.com" in subprocess_mock.call_args_list[0][0][0][9]
+    assert "-t" in subprocess_mock.call_args_list[0][0][0][10]
+    assert "template2.com" in subprocess_mock.call_args_list[0][0][0][11]

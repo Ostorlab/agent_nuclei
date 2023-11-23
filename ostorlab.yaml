@@ -85,7 +85,7 @@ args:
   - name: "use_default_templates"
     type: "boolean"
     description: "use nuclei's default templates to scan."
-    value: True
+    value: true
   - name: "https"
     type: "boolean"
     description: "Target that doesn't specify protocol will use this argument to set the protocol to either http
