@@ -1,6 +1,6 @@
 kind: Agent
 name: nuclei
-version: 0.7.1
+version: 0.7.2
 image: images/logo.png
 description: |
   This repository is an implementation of [Ostorlab Agent](https://pypi.org/project/ostorlab/) for the [Nuclei Scanner](https://github.com/projectdiscovery/nuclei) by Project Discovery.
@@ -104,4 +104,7 @@ args:
   - name: "dns_config"
     type: "string"
     description: "Content of the /etc/resolv.conf file."
+  - name: "basic_credentials"
+    type: "array"
+    description: "Credentials for basic authentication."
   
