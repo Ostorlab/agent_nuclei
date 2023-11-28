@@ -77,7 +77,7 @@ class BasicCredential:
             "utf-8"
         )
 
-        auth_header = f"Authorization: Basic {encoded_credentials}"
+        auth_header = f"'Authorization: Basic {encoded_credentials}'"
         return auth_header
 
 
