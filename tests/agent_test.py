@@ -646,7 +646,7 @@ def testAgentNuclei_whenBasicCredentialProvided_shouldRunCommandWithBasicAuthHea
     run_command_args = run_command_mock.call_args_list
     assert "-H" in run_command_args[0].args[0]
     assert (
-        "'Authorization: Basic dXNlcm5hbWU6ZHVtbXlfdmFsdWU='"
+        "Authorization: Basic dXNlcm5hbWU6ZHVtbXlfdmFsdWU="
         in run_command_args[0].args[0]
     )
 
@@ -685,7 +685,7 @@ def testAgentNuclei_whenBasicCredentialProvidedFromArgs_shouldRunCommandWithBasi
     assert "-H" in run_command_args[0].args[0]
     assert "-H" in run_command_args[0].args[0]
     assert (
-        "'Authorization: Basic dXNlcm5hbWU6ZHVtbXlfdmFsdWU='"
+        "Authorization: Basic dXNlcm5hbWU6ZHVtbXlfdmFsdWU="
         in run_command_args[0].args[0]
     )
 
