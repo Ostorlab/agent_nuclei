@@ -727,13 +727,13 @@ def testPrepareTargets_whenIPv4AssetReachCIDRLimit_raiseValueError(
         assert nuclei_agent.prepare_targets(scan_message_ipv4_with_mask8)
 
 
-def testPrepareTargets_whenIPv4AssetDoesBNotReachCIDRLimit_doesNotRaiseValueError(
+def testPrepareTargets_whenIPv4AssetDoesNotReachCIDRLimit_doesNotRaiseValueError(
     scan_message_network_range: message.Message,
     nuclei_agent: agent_nuclei.AgentNuclei,
 ) -> None:
     targets = nuclei_agent.prepare_targets(scan_message_network_range)
 
-    assert any(targets)
+    assert any(targets) is True
 
 
 def testPrepareTargets_whenIPv6AssetReachCIDRLimit_raiseValueError(
@@ -744,10 +744,10 @@ def testPrepareTargets_whenIPv6AssetReachCIDRLimit_raiseValueError(
         nuclei_agent.prepare_targets(scan_message_ipv6_with_mask64)
 
 
-def testPrepareTargets_whenIPv6AssetDoesBNotReachCIDRLimit_doesNotRaiseValueError(
+def testPrepareTargets_whenIPv6AssetDoesNotReachCIDRLimit_doesNotRaiseValueError(
     scan_message_ipv6_with_mask112: message.Message,
     nuclei_agent: agent_nuclei.AgentNuclei,
 ) -> None:
     targets = nuclei_agent.prepare_targets(scan_message_ipv6_with_mask112)
 
-    assert any(targets)
+    assert any(targets) is True
