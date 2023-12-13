@@ -602,9 +602,7 @@ def testAgentNuclei_whenSameMessageSentTwice_shouldScanOnlyOnce(
     mocker: plugin.MockerFixture,
 ) -> None:
     """Test nuclei agent should not scan the same message twice."""
-    prepare_target_mock = mocker.patch(
-        "agent.agent_nuclei.AgentNuclei._prepare_targets"
-    )
+    prepare_target_mock = mocker.patch("agent.agent_nuclei.AgentNuclei.prepare_targets")
 
     nuclei_agent_args.process(test_message)
     nuclei_agent_args.process(test_message)
@@ -619,9 +617,7 @@ def testAgentNuclei_whenUnknownTarget_shouldntBeProcessed(
     mocker: plugin.MockerFixture,
 ) -> None:
     """Test nuclei agent should not scan message with unknown target."""
-    prepare_target_mock = mocker.patch(
-        "agent.agent_nuclei.AgentNuclei._prepare_targets"
-    )
+    prepare_target_mock = mocker.patch("agent.agent_nuclei.AgentNuclei.prepare_targets")
     msg = message.Message.from_data(
         "v3.asset.file", data={"path": "libagora-crypto.so"}
     )
@@ -721,3 +717,37 @@ def testAgentNuclei_withCustomTemplates_RunScan(
     assert "template1.yaml" in command
     assert "-t" in command
     assert "template2.yaml" in command
+
+
+def testPrepareTargets_whenIPv4AssetReachCIDRLimit_raiseValueError(
+    scan_message_ipv4_with_mask8: message.Message,
+    nuclei_agent: agent_nuclei.AgentNuclei,
+) -> None:
+    with pytest.raises(ValueError, match="Subnet mask below 16 is not supported."):
+        assert nuclei_agent.prepare_targets(scan_message_ipv4_with_mask8)
+
+
+def testPrepareTargets_whenIPv4AssetDoesBNotReachCIDRLimit_doesNotRaiseValueError(
+    scan_message_network_range: message.Message,
+    nuclei_agent: agent_nuclei.AgentNuclei,
+) -> None:
+    targets = nuclei_agent.prepare_targets(scan_message_network_range)
+
+    assert any(targets)
+
+
+def testPrepareTargets_whenIPv6AssetReachCIDRLimit_raiseValueError(
+    scan_message_ipv6_with_mask64: message.Message,
+    nuclei_agent: agent_nuclei.AgentNuclei,
+) -> None:
+    with pytest.raises(ValueError, match="Subnet mask below 112 is not supported."):
+        nuclei_agent.prepare_targets(scan_message_ipv6_with_mask64)
+
+
+def testPrepareTargets_whenIPv6AssetDoesBNotReachCIDRLimit_doesNotRaiseValueError(
+    scan_message_ipv6_with_mask112: message.Message,
+    nuclei_agent: agent_nuclei.AgentNuclei,
+) -> None:
+    targets = nuclei_agent.prepare_targets(scan_message_ipv6_with_mask112)
+
+    assert any(targets)

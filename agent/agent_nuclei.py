@@ -52,6 +52,8 @@ NUCLEI_RISK_MAPPING = {
 
 STORAGE_NAME = "agent_nuclei"
 MAX_TARGETS_COMMAND_LINE = 10
+IPV4_CIDR_LIMIT = 16
+IPV6_CIDR_LIMIT = 112
 
 
 @dataclasses.dataclass
@@ -152,7 +154,7 @@ class AgentNuclei(
         if self._is_target_already_processed(message) is True:
             return
 
-        targets = self._prepare_targets(message)
+        targets = self.prepare_targets(message)
         # Filter out all the target that are out of scope.
         targets = [
             t
@@ -393,15 +395,31 @@ class AgentNuclei(
         else:
             return "http"
 
-    def _prepare_targets(self, message: m.Message) -> List[str]:
+    def prepare_targets(self, message: m.Message) -> List[str]:
         """Prepare targets based on type, if a domain name is provided, port and protocol are collected
-        from the config."""
+        from the config.
+
+        Args:
+            message (m.Message): The input message containing information about the target.
+
+        Returns:
+            List: A list of targets containing host, port, and scheme information.
+        """
         if message.data.get("host") is not None:
             host = str(message.data.get("host"))
-            if message.data.get("mask") is None:
+            mask = message.data.get("mask")
+            if mask is None:
                 ip_network = ipaddress.ip_network(host)
             else:
-                mask = message.data.get("mask")
+                version = message.data.get("version")
+                if version == 4 and int(mask) < IPV4_CIDR_LIMIT:
+                    raise ValueError(
+                        f"Subnet mask below {IPV4_CIDR_LIMIT} is not supported."
+                    )
+                if version == 6 and int(mask) < IPV6_CIDR_LIMIT:
+                    raise ValueError(
+                        f"Subnet mask below {IPV6_CIDR_LIMIT} is not supported."
+                    )
                 ip_network = ipaddress.ip_network(f"{host}/{mask}", strict=False)
             return [str(h) for h in ip_network.hosts()]
 
