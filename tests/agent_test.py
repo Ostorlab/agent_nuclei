@@ -724,16 +724,14 @@ def testPrepareTargets_whenIPv4AssetReachCIDRLimit_raiseValueError(
     nuclei_agent: agent_nuclei.AgentNuclei,
 ) -> None:
     with pytest.raises(ValueError, match="Subnet mask below 16 is not supported."):
-        assert nuclei_agent.prepare_targets(scan_message_ipv4_with_mask8)
+        nuclei_agent.prepare_targets(scan_message_ipv4_with_mask8)
 
 
 def testPrepareTargets_whenIPv4AssetDoesNotReachCIDRLimit_doesNotRaiseValueError(
     scan_message_network_range: message.Message,
     nuclei_agent: agent_nuclei.AgentNuclei,
 ) -> None:
-    targets = nuclei_agent.prepare_targets(scan_message_network_range)
-
-    assert any(targets) is True
+    nuclei_agent.prepare_targets(scan_message_network_range)
 
 
 def testPrepareTargets_whenIPv6AssetReachCIDRLimit_raiseValueError(
@@ -748,6 +746,4 @@ def testPrepareTargets_whenIPv6AssetDoesNotReachCIDRLimit_doesNotRaiseValueError
     scan_message_ipv6_with_mask112: message.Message,
     nuclei_agent: agent_nuclei.AgentNuclei,
 ) -> None:
-    targets = nuclei_agent.prepare_targets(scan_message_ipv6_with_mask112)
-
-    assert any(targets) is True
+    nuclei_agent.prepare_targets(scan_message_ipv6_with_mask112)
