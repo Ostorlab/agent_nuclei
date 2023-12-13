@@ -215,3 +215,35 @@ def nuclei_agent_with_custom_templates(
 
         agent_object = agent_nuclei.AgentNuclei(definition, settings)
         return agent_object
+
+
+@pytest.fixture()
+def scan_message_ipv4_with_mask8() -> message.Message:
+    """Creates a message of type v3.asset.ip.v4 to be used by the agent for testing purposes."""
+    selector = "v3.asset.ip.v4"
+    msg_data = {"host": "192.168.1.17", "mask": "8", "version": 4}
+    return message.Message.from_data(selector, data=msg_data)
+
+
+@pytest.fixture()
+def scan_message_ipv6_with_mask64() -> message.Message:
+    """Creates a message of type v3.asset.ip.v6 to be used by the agent for testing purposes."""
+    selector = "v3.asset.ip.v6"
+    msg_data = {
+        "host": "2001:db8:3333:4444:5555:6666:7777:8888",
+        "mask": "64",
+        "version": 6,
+    }
+    return message.Message.from_data(selector, data=msg_data)
+
+
+@pytest.fixture()
+def scan_message_ipv6_with_mask112() -> message.Message:
+    """Creates a message of type v3.asset.ip.v6 to be used by the agent for testing purposes."""
+    selector = "v3.asset.ip.v6"
+    msg_data = {
+        "host": "2001:db8:3333:4444:5555:6666:7777:8888",
+        "mask": "112",
+        "version": 6,
+    }
+    return message.Message.from_data(selector, data=msg_data)
