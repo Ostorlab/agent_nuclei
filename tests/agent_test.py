@@ -1,7 +1,5 @@
 """Unittests for nuclei class."""
 import subprocess
-from typing import Dict
-from typing import List
 from unittest import mock
 
 import pytest
@@ -18,7 +16,6 @@ from agent import helpers
 def testAgentNuclei_whenBinaryAvailable_RunScan(
     scan_message: message.Message,
     nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
-    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
     """Tests running the agent and parsing the json output."""
@@ -50,7 +47,6 @@ def testAgentNuclei_whenUrlTemplatesGiven_RunScan(
     requests_mock: rq_mock.mocker.Mocker,
     scan_message: message.Message,
     nuclei_agent_args: agent_nuclei.AgentNuclei,
-    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
     """Tests running the agent and parsing the json output."""
@@ -101,7 +97,6 @@ def testAgentNuclei_whenUrlTemplatesGiven_RunScan(
 def testAgentNuclei_whenLinkMessageGiven_NotScan(
     scan_message_link_2: message.Message,
     nuclei_agent: agent_nuclei.AgentNuclei,
-    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
     """Tests running the agent and parsing the json output."""
@@ -115,7 +110,6 @@ def testAgentNuclei_whenLinkMessageGiven_NotScan(
 def testAgentNuclei_whenDomainNameGiven_NotScan(
     scan_message_domain_2: message.Message,
     nuclei_agent: agent_nuclei.AgentNuclei,
-    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
     """Tests running the agent and parsing the json output."""
@@ -130,7 +124,6 @@ def testAgentNuclei_whenTemplatesProvided_scansAppWithTemplate(
     requests_mock: rq_mock.mocker.Mocker,
     scan_message: message.Message,
     nuclei_agent_args: agent_nuclei.AgentNuclei,
-    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
     """Tests running the agent and parsing the json output."""
@@ -183,7 +176,6 @@ def testAgentNuclei_whenMessageIsIpRange_scanMultipleTargets(
     requests_mock: rq_mock.mocker.Mocker,
     scan_message_network_range: message.Message,
     nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
-    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
     """Tests running the agent and parsing the json output."""
@@ -212,7 +204,6 @@ def testAgentNuclei_whenMessageIsDomain_scanMultipleTargets(
     requests_mock: rq_mock.mocker.Mocker,
     scan_message_domain: message.Message,
     nuclei_agent: agent_nuclei.AgentNuclei,
-    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
     """Tests running the agent and parsing the json output."""
@@ -240,7 +231,6 @@ def testAgentNuclei_whenMessageIsLargeIpRange_scanMultipleTargets(
     requests_mock: rq_mock.mocker.Mocker,
     scan_message_large_network_range: message.Message,
     nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
-    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
     """Tests running the agent and parsing the json output."""
@@ -267,9 +257,8 @@ def testAgentNuclei_whenMessageIsLargeIpRange_scanMultipleTargets(
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
 def testAgentNuclei_whenLinkScanned_emitsExactIpWhereVulnWasFound(
     nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
-    agent_mock: List[message.Message],
+    agent_mock: list[message.Message],
     ip_small_range_message: message.Message,
-    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
@@ -286,9 +275,8 @@ def testAgentNuclei_whenLinkScanned_emitsExactIpWhereVulnWasFound(
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_non_domain.json")
 def testAgentNuclei_whenDomainDoesntExist_emitsDomainAsIs(
     nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
-    agent_mock: List[message.Message],
+    agent_mock: list[message.Message],
     ip_small_range_message: message.Message,
-    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
@@ -305,9 +293,8 @@ def testAgentNuclei_whenDomainDoesntExist_emitsDomainAsIs(
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_domain.json")
 def testAgentNuclei_whenDomainScanned_emitsExactDomainWhereVulnWasFound(
     nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
-    agent_mock: List[message.Message],
+    agent_mock: list[message.Message],
     ip_small_range_message: message.Message,
-    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
@@ -324,9 +311,8 @@ def testAgentNuclei_whenDomainScanned_emitsExactDomainWhereVulnWasFound(
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_ip.json")
 def testAgentNuclei_whenIpScanned_emitsExactIpWhereVulnWasFound(
     nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
-    agent_mock: List[message.Message],
+    agent_mock: list[message.Message],
     ip_small_range_message: message.Message,
-    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
@@ -343,9 +329,8 @@ def testAgentNuclei_whenIpScanned_emitsExactIpWhereVulnWasFound(
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_ipv6.json")
 def testAgentNuclei_whenIpv6Scanned_emitsExactIpWhereVulnWasFound(
     nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
-    agent_mock: List[message.Message],
+    agent_mock: list[message.Message],
     ip_small_range_message: message.Message,
-    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
@@ -366,9 +351,8 @@ def testAgentNuclei_whenIpv6Scanned_emitsExactIpWhereVulnWasFound(
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_ip_port.json")
 def testAgentNuclei_whenIpWithPortScanned_emitsExactIpWhereVulnWasFound(
     nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
-    agent_mock: List[message.Message],
+    agent_mock: list[message.Message],
     ip_small_range_message: message.Message,
-    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
@@ -386,9 +370,8 @@ def testAgentNuclei_whenIpWithPortScanned_emitsExactIpWhereVulnWasFound(
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_with_port.json")
 def testAgentNuclei_whenLocationHasDomainAndPort_reportedLocationShouldOnlyHaveName(
     nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
-    agent_mock: List[message.Message],
+    agent_mock: list[message.Message],
     ip_small_range_message: message.Message,
-    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
@@ -408,9 +391,8 @@ def testAgentNuclei_whenLocationHasDomainAndPort_reportedLocationShouldOnlyHaveN
 def testAgentNuclei_whenMessageIsDomainWithPort_scanMultipleTargets(
     nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
     scan_message_domain: message.Message,
-    agent_mock: List[message.Message],
+    agent_mock: list[message.Message],
     nuclei_agent: agent_nuclei.AgentNuclei,
-    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
@@ -446,9 +428,8 @@ def testPrepareDomainAsset_whenUrlGiven_returnsDomainAsset(
 def testAgentNuclei_whenMacthedAtIsInvalid_reportVuln(
     nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
     scan_message_domain: message.Message,
-    agent_mock: List[message.Message],
+    agent_mock: list[message.Message],
     nuclei_agent: agent_nuclei.AgentNuclei,
-    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
@@ -463,7 +444,6 @@ def testAgentNuclei_whenProcessFailed_agentNotCrash(
     requests_mock: rq_mock.mocker.Mocker,
     scan_message: message.Message,
     nuclei_agent_args: agent_nuclei.AgentNuclei,
-    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
     """Tests running the agent and parsing the json output."""
@@ -497,7 +477,7 @@ def testAgentNuclei_whenProcessFailed_agentNotCrash(
 
 def testAgentNuclei_whenMessageIsDomainWithUnsupportedSchema_shouldNotScan(
     nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
-    agent_mock: List[message.Message],
+    agent_mock: list[message.Message],
     mocker: plugin.MockerFixture,
 ) -> None:
     """Tests when the message is a domain with unsupported schema, the agent should not scan it."""
@@ -520,7 +500,6 @@ def testAgentNuclei_whenMessageIsDomainWithUnsupportedSchema_shouldNotScan(
 def testAgentNuclei_whenNucleiReportsCriticalFinding_emitsCriticalVulnerability(
     scan_message: message.Message,
     nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
-    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
     """Tests running the agent and parsing the json output."""
@@ -598,7 +577,6 @@ def testAgentNuclei_whenNucleiProcessLink_emitsTechnicalDetailWithLink(
 def testAgentNuclei_whenSameMessageSentTwice_shouldScanOnlyOnce(
     test_message: message.Message,
     nuclei_agent_args: agent_nuclei.AgentNuclei,
-    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
     """Test nuclei agent should not scan the same message twice."""
@@ -613,7 +591,6 @@ def testAgentNuclei_whenSameMessageSentTwice_shouldScanOnlyOnce(
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "../tests/result_nuclei.json")
 def testAgentNuclei_whenUnknownTarget_shouldntBeProcessed(
     nuclei_agent_args: agent_nuclei.AgentNuclei,
-    agent_persist_mock: Dict[str | bytes, str | bytes],
     mocker: plugin.MockerFixture,
 ) -> None:
     """Test nuclei agent should not scan message with unknown target."""

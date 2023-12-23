@@ -2,7 +2,6 @@
 import pathlib
 import random
 import json
-from typing import Dict
 
 import pytest
 
@@ -72,7 +71,8 @@ def scan_message_domain_2() -> message.Message:
 
 @pytest.fixture
 def nuclei_agent(
-    agent_persist_mock: Dict[str | bytes, str | bytes]
+    agent_mock: list[message.Message],
+    agent_persist_mock: dict[str | bytes, str | bytes],
 ) -> agent_nuclei.AgentNuclei:
     with (pathlib.Path(__file__).parent.parent / "ostorlab.yaml").open() as yaml_o:
         definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
@@ -92,7 +92,8 @@ def nuclei_agent(
 
 @pytest.fixture
 def nuclei_agent_no_url_scope(
-    agent_persist_mock: Dict[str | bytes, str | bytes]
+    agent_mock: list[message.Message],
+    agent_persist_mock: dict[str | bytes, str | bytes],
 ) -> agent_nuclei.AgentNuclei:
     with (pathlib.Path(__file__).parent.parent / "ostorlab.yaml").open() as yaml_o:
         definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
@@ -111,7 +112,8 @@ def nuclei_agent_no_url_scope(
 
 @pytest.fixture
 def nuclei_agent_args(
-    agent_persist_mock: Dict[str | bytes, str | bytes]
+    agent_mock: list[message.Message],
+    agent_persist_mock: dict[str | bytes, str | bytes],
 ) -> agent_nuclei.AgentNuclei:
     with (pathlib.Path(__file__).parent.parent / "ostorlab.yaml").open() as yaml_o:
         definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
@@ -162,7 +164,8 @@ def scan_message_link_with_basic_credential() -> message.Message:
 
 @pytest.fixture
 def nuclei_agent_with_basic_credentials(
-    agent_persist_mock: Dict[str | bytes, str | bytes]
+    agent_mock: list[message.Message],
+    agent_persist_mock: dict[str | bytes, str | bytes],
 ) -> agent_nuclei.AgentNuclei:
     with (pathlib.Path(__file__).parent.parent / "ostorlab.yaml").open() as yaml_o:
         definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
@@ -194,7 +197,8 @@ def nuclei_agent_with_basic_credentials(
 
 @pytest.fixture
 def nuclei_agent_with_custom_templates(
-    agent_persist_mock: Dict[str | bytes, str | bytes]
+    agent_mock: list[message.Message],
+    agent_persist_mock: dict[str | bytes, str | bytes],
 ) -> agent_nuclei.AgentNuclei:
     with (pathlib.Path(__file__).parent.parent / "ostorlab.yaml").open() as yaml_o:
         definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
