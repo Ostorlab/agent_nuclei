@@ -12,7 +12,7 @@ COPY requirement.txt /requirement.txt
 RUN python3.11 -m pip install -r /requirement.txt
 RUN mkdir /nuclei
 WORKDIR /nuclei
-ARG NUCLEI_VERSION=2.9.15
+ARG NUCLEI_VERSION=3.1.3
 RUN wget https://github.com/projectdiscovery/nuclei/releases/download/v${NUCLEI_VERSION}/nuclei_${NUCLEI_VERSION}_linux_amd64.zip && \
   unzip nuclei_${NUCLEI_VERSION}_linux_amd64.zip
 RUN mkdir -p /app/agent
