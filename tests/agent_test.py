@@ -343,7 +343,7 @@ def testAgentNuclei_whenIpv6Scanned_emitsExactIpWhereVulnWasFound(
         "ipv6": {
             "host": "FE80:CD00:0000:0CDE:1257:0000:211E:729C",
             "mask": "128",
-            "version": 4,
+            "version": 6,
         }
     }
 
