@@ -89,12 +89,14 @@ def build_vuln_location(
     asset: ipv4_asset.IPv4 | ipv6_asset.IPv6 | domain_asset.DomainName
     ip = None
     port = None
-    if is_ipv4(matched_at) is True:
-        ip, port = split_ipv4(matched_at)
+    potential_ip = matched_at
+    if target.scheme != "":
+        potential_ip = potential_ip.replace(f"{target.scheme}://", "")
+    if is_ipv4(potential_ip) is True:
+        ip, port = split_ipv4(potential_ip)
         asset = ipv4_asset.IPv4(host=str(ip), version=4, mask="32")
-    elif is_ipv6(matched_at) is not False:
-        ip = matched_at
-        asset = ipv6_asset.IPv6(host=str(ip), version=4, mask="128")
+    elif is_ipv6(potential_ip) is True:
+        asset = ipv6_asset.IPv6(host=str(potential_ip), version=6, mask="128")
     else:
         asset = domain_asset.DomainName(name=prepare_domain_asset(matched_at))
 
