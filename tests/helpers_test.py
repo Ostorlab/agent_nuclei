@@ -1,9 +1,10 @@
 """Unit tests for the helpers module."""
 
-from agent import helpers
+from ostorlab.assets import domain_name
 from ostorlab.assets import ipv4
 from ostorlab.assets import ipv6
-from ostorlab.assets import domain_name
+
+from agent import helpers
 
 
 def testBuildVulnLocation_whenMatchedAtIsIpv4_returnsVulnLocation() -> None:
