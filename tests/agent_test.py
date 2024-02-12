@@ -745,7 +745,7 @@ def testAgentNuclei_whenProxyIsProvided_shouldCallWithProxyArg(
 
     run_command_args = run_command_mock.call_args_list
     command = " ".join(run_command_args[0].args[0])
-    
+
     assert "/nuclei/nuclei" in command
     assert "-proxy" in command
     assert "https://proxy.co" in command
