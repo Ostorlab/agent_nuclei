@@ -107,4 +107,6 @@ args:
   - name: "basic_credentials"
     type: "array"
     description: "Credentials for basic authentication."
-  
+  - name: "proxy"
+    type: "string"
+    description: "Proxy to use for the scan with nuclei."
