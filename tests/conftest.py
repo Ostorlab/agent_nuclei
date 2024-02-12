@@ -195,14 +195,13 @@ def nuclei_agent_with_basic_credentials(
         return agent_object
 
 
-
 @pytest.fixture
 def nuclei_agent_with_proxy(
     agent_mock: list[message.Message],
     agent_persist_mock: dict[str | bytes, str | bytes],
 ) -> agent_nuclei.AgentNuclei:
     del agent_mock
-    del  agent_persist_mock
+    del agent_persist_mock
     with (pathlib.Path(__file__).parent.parent / "ostorlab.yaml").open() as yaml_o:
         definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
         settings = runtime_definitions.AgentSettings(

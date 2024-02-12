@@ -131,7 +131,7 @@ class AgentNuclei(
         agent_report_vulnerability_mixin.AgentReportVulnMixin.__init__(self)
         self._scope_urls_regex: str | None = self.args.get("scope_urls_regex")
         self._vpn_config: str | None = self.args.get("vpn_config")
-        self._dns_config: str | None= self.args.get("dns_config")
+        self._dns_config: str | None = self.args.get("dns_config")
         self._basic_credentials: list[BasicCredential] = []
         self._proxy: str | None = self.args.get("proxy")
 
