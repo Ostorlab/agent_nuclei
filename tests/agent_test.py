@@ -733,7 +733,7 @@ def testAgentNuclei_whenProxyIsProvided_shouldCallWithProxyArg(
     mocker: plugin.MockerFixture,
     requests_mock: rq_mock.mocker.Mocker,
 ) -> None:
-    """Tests running the agent when templates are provided."""
+    """Tests running the agent when proxy is provided."""
     run_command_mock = mocker.patch("subprocess.run", return_value=None)
     mocker.patch(
         "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
