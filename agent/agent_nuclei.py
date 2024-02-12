@@ -129,10 +129,11 @@ class AgentNuclei(
         agent.Agent.__init__(self, agent_definition, agent_settings)
         agent_persist_mixin.AgentPersistMixin.__init__(self, agent_settings)
         agent_report_vulnerability_mixin.AgentReportVulnMixin.__init__(self)
-        self._scope_urls_regex: Optional[str] = self.args.get("scope_urls_regex")
-        self._vpn_config: Optional[str] = self.args.get("vpn_config")
-        self._dns_config: Optional[str] = self.args.get("dns_config")
+        self._scope_urls_regex: str | None = self.args.get("scope_urls_regex")
+        self._vpn_config: str | None = self.args.get("vpn_config")
+        self._dns_config: str | None= self.args.get("dns_config")
         self._basic_credentials: list[BasicCredential] = []
+        self._proxy: str | None = self.args.get("proxy")
 
     def start(self) -> None:
         """Enable VPN configuration at the beginning if needed."""
@@ -454,6 +455,8 @@ class AgentNuclei(
         ]
         for chunk in chunks:
             command = ["/nuclei/nuclei"]
+            if self._proxy is not None:
+                command.extend(["-proxy", self._proxy])
             for item in chunk:
                 command.extend(["-u", item])
             command.extend(["-j", "-irr", "-silent", "-o", OUTPUT_PATH])

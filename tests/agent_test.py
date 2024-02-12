@@ -724,3 +724,27 @@ def testPrepareTargets_whenIPv6AssetDoesNotReachCIDRLimit_doesNotRaiseValueError
     nuclei_agent: agent_nuclei.AgentNuclei,
 ) -> None:
     nuclei_agent.prepare_targets(scan_message_ipv6_with_mask112)
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
+def testAgentNuclei_whenProxyIsProvided_shouldCallWithProxyArg(
+    scan_message: message.Message,
+    nuclei_agent_with_proxy: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+    requests_mock: rq_mock.mocker.Mocker,
+) -> None:
+    """Tests running the agent when templates are provided."""
+    run_command_mock = mocker.patch("subprocess.run", return_value=None)
+    mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+    requests_mock.get("https://template1.yaml", json={})
+    requests_mock.get("https://template2.yaml", json={})
+
+    nuclei_agent_with_proxy.process(scan_message)
+
+    run_command_args = run_command_mock.call_args_list
+    command = " ".join(run_command_args[0].args[0])
+    assert "/nuclei/nuclei" in command
+    assert "-proxy" in command
+    assert "https://proxy.co" in command
