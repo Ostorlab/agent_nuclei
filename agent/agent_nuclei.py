@@ -156,6 +156,7 @@ class AgentNuclei(
         if self._is_target_already_processed(message) is True:
             return
 
+        logger.info("Preparing targets.")
         targets = self.prepare_targets(message)
         # Filter out all the target that are out of scope.
         targets = [
@@ -172,8 +173,10 @@ class AgentNuclei(
         if len(targets) > 0:
             templates_urls = self.args.get("template_urls")
             if templates_urls is not None:
+                logger.info("Running custom templates.")
                 self._run_templates(templates_urls, targets)
             if self.args.get("use_default_templates", True):
+                logger.info("Running default templates.")
                 self._run_command(targets)
         self._mark_target_as_processed(message)
         logger.debug("Done processing message of selector : %s", message.selector)
@@ -480,6 +483,7 @@ class AgentNuclei(
                 stderr=subprocess.PIPE,
                 check=True,
             )
+            logger.info("Parsing nuclei output.")
             self._parse_output()
         except subprocess.CalledProcessError as e:
             logger.error("Error running nuclei %s", e)
