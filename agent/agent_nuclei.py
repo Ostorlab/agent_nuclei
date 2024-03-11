@@ -156,7 +156,7 @@ class AgentNuclei(
         if self._is_target_already_processed(message) is True:
             return
 
-        logger.info("Preparing targets.")
+        logger.info("Preparing targets ...")
         targets = self.prepare_targets(message)
         # Filter out all the target that are out of scope.
         targets = [
