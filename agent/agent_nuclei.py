@@ -1,4 +1,5 @@
 """Agent implementation for nuclei scanner."""
+
 import dataclasses
 import ipaddress
 import json

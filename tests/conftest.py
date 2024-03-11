@@ -1,4 +1,5 @@
 """Pytest fixture for the nuclei agent_nuclei."""
+
 import pathlib
 import random
 import json

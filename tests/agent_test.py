@@ -1,4 +1,5 @@
 """Unittests for nuclei class."""
+
 import subprocess
 from unittest import mock
 

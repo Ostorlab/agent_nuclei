@@ -1,4 +1,5 @@
 """Module exposing functionalities to format technical details of the findings before emitting them."""
+
 from typing import Any, Callable
 
 

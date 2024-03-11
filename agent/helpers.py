@@ -1,4 +1,5 @@
 """Helper for nuclei Agent to complete the scan."""
+
 import ipaddress
 import logging
 from typing import Tuple, cast, Optional
