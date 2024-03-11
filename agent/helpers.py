@@ -82,7 +82,7 @@ def build_vuln_location(
         - VulnerabilityLocation.
     """
     if matched_at is None or matched_at == "":
-        logger.info("Matched at value is absent.")
+        logger.debug("Matched at value is absent.")
         return None
     metadata = []
     target = parse.urlparse(matched_at)

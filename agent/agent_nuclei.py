@@ -151,7 +151,7 @@ class AgentNuclei(
         Returns:
 
         """
-        logger.info("processing message of selector : %s", message.selector)
+        logger.debug("processing message of selector : %s", message.selector)
         if self._is_target_already_processed(message) is True:
             return
 
@@ -175,7 +175,7 @@ class AgentNuclei(
             if self.args.get("use_default_templates", True):
                 self._run_command(targets)
         self._mark_target_as_processed(message)
-        logger.info("Done processing message of selector : %s", message.selector)
+        logger.debug("Done processing message of selector : %s", message.selector)
 
     def _parse_output(self) -> None:
         """Parse Nuclei Json output and emit the findings as vulnerabilities"""
