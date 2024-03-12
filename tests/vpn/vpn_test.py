@@ -1,4 +1,5 @@
 """Unit tests for the VPN configuration."""
+
 from pytest_mock import plugin
 
 from agent.vpn import wg_vpn

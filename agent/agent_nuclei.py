@@ -1,4 +1,5 @@
 """Agent implementation for nuclei scanner."""
+
 import dataclasses
 import ipaddress
 import json
@@ -151,10 +152,11 @@ class AgentNuclei(
         Returns:
 
         """
-        logger.info("processing message of selector : %s", message.selector)
+        logger.debug("processing message of selector : %s", message.selector)
         if self._is_target_already_processed(message) is True:
             return
 
+        logger.info("Preparing targets ...")
         targets = self.prepare_targets(message)
         # Filter out all the target that are out of scope.
         targets = [
@@ -171,11 +173,13 @@ class AgentNuclei(
         if len(targets) > 0:
             templates_urls = self.args.get("template_urls")
             if templates_urls is not None:
+                logger.debug("Running custom templates.")
                 self._run_templates(templates_urls, targets)
             if self.args.get("use_default_templates", True):
+                logger.debug("Running default templates.")
                 self._run_command(targets)
         self._mark_target_as_processed(message)
-        logger.info("Done processing message of selector : %s", message.selector)
+        logger.info("Done scanning targets.")
 
     def _parse_output(self) -> None:
         """Parse Nuclei Json output and emit the findings as vulnerabilities"""

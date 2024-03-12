@@ -1,4 +1,5 @@
 """Unit test for the findings formatters."""
+
 from pytest_mock import plugin
 
 from agent import formatters

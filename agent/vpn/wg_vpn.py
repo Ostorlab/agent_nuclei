@@ -1,4 +1,5 @@
 """Enable VPN connection through wireguard."""
+
 import pathlib
 import subprocess
 import logging
