@@ -78,6 +78,9 @@ out_selectors:
   - v3.report.vulnerability
 docker_file_path : Dockerfile
 docker_build_root : .
+supported_architectures:
+  - linux/arm64/v8
+  - linux/x86_64
 args:
   - name: "template_urls"
     type: "array"
