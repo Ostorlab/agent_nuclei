@@ -12,6 +12,7 @@ from os import path
 from typing import Dict, List, Optional, cast
 from urllib import parse
 import base64
+import copy
 
 import requests
 from ostorlab.agent import agent
@@ -232,7 +233,7 @@ class AgentNuclei(
                 nuclei_data_dict["info"].pop("tags", None)
 
                 minified_data_dict = formatters.minify_dict(
-                    nuclei_data_dict, formatters.truncate
+                    copy.deepcopy(nuclei_data_dict), formatters.truncate
                 )
                 scan_results = json.dumps(minified_data_dict, indent=4, sort_keys=True)
                 technical_detail += f"""```json\n  {scan_results} \n ``` """
