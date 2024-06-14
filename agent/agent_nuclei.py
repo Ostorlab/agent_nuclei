@@ -12,7 +12,6 @@ from os import path
 from typing import Dict, List, Optional, cast
 from urllib import parse
 import base64
-import copy
 
 import requests
 from ostorlab.agent import agent
