@@ -41,8 +41,9 @@ def minify_dict(
     if isinstance(value, list):
         return [minify_dict(v, handler) for v in value]
     elif isinstance(value, dict):
+        new_dict = value.copy()
         for key, v in value.items():
-            value[key] = minify_dict(v, handler)
-        return value
+            new_dict[key] = minify_dict(v, handler)
+        return new_dict
     else:
         return handler(value, truncate_size)
