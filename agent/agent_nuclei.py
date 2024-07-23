@@ -189,7 +189,7 @@ class AgentNuclei(
                 try:
                     nuclei_data_dict = json.loads(line)
                 except json.decoder.JSONDecodeError as e:
-                    logger.debug("Error while trying to decode line: %s: %s", line, e)
+                    logger.warning("Error while trying to decode line: %s: %s", line, e)
                     continue
                 technical_detail = ""
                 matcher_status = nuclei_data_dict.get("matcher-status", False)
