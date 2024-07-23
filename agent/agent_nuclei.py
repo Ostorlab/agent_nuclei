@@ -186,7 +186,11 @@ class AgentNuclei(
         with open(OUTPUT_PATH, "r", encoding="UTF-8") as f:
             lines = f.readlines()
             for line in lines:
-                nuclei_data_dict = json.loads(line)
+                try:
+                    nuclei_data_dict = json.loads(line)
+                except json.decoder.JSONDecodeError as e:
+                    logger.warning("Error while trying to decode line: %s: %s", line, e)
+                    continue
                 technical_detail = ""
                 matcher_status = nuclei_data_dict.get("matcher-status", False)
                 matcher_name = nuclei_data_dict.get("matcher-name", None)
