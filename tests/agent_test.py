@@ -784,3 +784,12 @@ def testAgentNuclei_whenResultIsInvalidJson_agentShouldHandleExceptionAndDoNotRa
     nuclei_agent_no_url_scope.process(scan_message)
 
     assert len(agent_mock) == 0
+
+
+def testPrepareTargets_whenMessageIsDomainName_shouldReturnDomainName(
+    scan_message_ipv4_with_port: message.Message,
+    nuclei_agent: agent_nuclei.AgentNuclei,
+) -> None:
+    assert nuclei_agent.prepare_targets(scan_message_ipv4_with_port) == [
+        "192.168.0.1:8080"
+    ]

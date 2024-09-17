@@ -430,7 +430,8 @@ class AgentNuclei(
                         f"Subnet mask below {IPV6_CIDR_LIMIT} is not supported."
                     )
                 ip_network = ipaddress.ip_network(f"{host}/{mask}", strict=False)
-            return [str(h) for h in ip_network.hosts()]
+            port = self._get_port(message)
+            return [f"{h}:{port}" for h in ip_network.hosts()]
 
         elif (domain_name := message.data.get("name")) is not None:
             schema = self._get_schema(message)
