@@ -795,14 +795,18 @@ def testPrepareTargets_whenMessageIsDomainName_shouldReturnDomainName(
     ]
 
 
+@pytest.mark.parametrize("is_mask_set", [True, False])
 def testNucleiAgent_whenAnIpReceivedWithDifferentPort_shouldScanBothPorts(
     scan_message_ipv4_with_port: message.Message,
     nuclei_agent: agent_nuclei.AgentNuclei,
     mocker: plugin.MockerFixture,
+    is_mask_set: bool,
 ) -> None:
     prepare_targets_mock = mocker.patch(
         "agent.agent_nuclei.AgentNuclei.prepare_targets", return_value=[]
     )
+    if is_mask_set is False:
+        scan_message_ipv4_with_port.data.pop("mask")
     nuclei_agent.process(scan_message_ipv4_with_port)
     scan_message_ipv4_with_port.data["port"] = 8081
 
@@ -811,11 +815,15 @@ def testNucleiAgent_whenAnIpReceivedWithDifferentPort_shouldScanBothPorts(
     assert prepare_targets_mock.call_count == 2
 
 
+@pytest.mark.parametrize("is_mask_set", [True, False])
 def testNucleiAgent_whenAnIpReceivedWithSamePort_shouldScanOnce(
     scan_message_ipv4_with_port: message.Message,
     nuclei_agent: agent_nuclei.AgentNuclei,
     mocker: plugin.MockerFixture,
+    is_mask_set: bool,
 ) -> None:
+    if is_mask_set is False:
+        scan_message_ipv4_with_port.data.pop("mask")
     prepare_targets_mock = mocker.patch(
         "agent.agent_nuclei.AgentNuclei.prepare_targets", return_value=[]
     )
