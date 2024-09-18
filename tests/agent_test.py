@@ -71,7 +71,7 @@ def testAgentNuclei_whenUrlTemplatesGiven_RunScan(
     assert run_command_args[1][0][0] == [
         "/nuclei/nuclei",
         "-u",
-        "209.235.136.112",
+        "209.235.136.112:443",
         "-j",
         "-irr",
         "-silent",
@@ -81,7 +81,7 @@ def testAgentNuclei_whenUrlTemplatesGiven_RunScan(
     command = " ".join(run_command_args[0].args[0])
     assert "/nuclei/nuclei" in command
     assert "-u" in command
-    assert "209.235.136.112" in command
+    assert "209.235.136.112:443" in command
     assert "-j" in command
     assert "-irr" in command
     assert "-silent" in command
@@ -162,7 +162,7 @@ def testAgentNuclei_whenTemplatesProvided_scansAppWithTemplate(
         [
             "/nuclei/nuclei",
             "-u",
-            "209.235.136.112",
+            "209.235.136.112:443",
             "-j",
             "-irr",
             "-silent",
@@ -196,8 +196,8 @@ def testAgentNuclei_whenMessageIsIpRange_scanMultipleTargets(
     nuclei_agent_no_url_scope.process(scan_message_network_range)
     run_command_mock.assert_called()
     run_command_args = run_command_mock.call_args_list
-    assert "209.235.136.113" in run_command_args[0].args[0]
-    assert "209.235.136.121" in run_command_args[0].args[0]
+    assert "209.235.136.113:443" in run_command_args[0].args[0]
+    assert "209.235.136.121:443" in run_command_args[0].args[0]
 
 
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
@@ -251,8 +251,8 @@ def testAgentNuclei_whenMessageIsLargeIpRange_scanMultipleTargets(
     nuclei_agent_no_url_scope.process(scan_message_large_network_range)
     run_command_mock.assert_called()
     run_command_args = run_command_mock.call_args_list
-    assert "209.235.0.1" in run_command_args[0].args[0]
-    assert "209.235.0.15" in run_command_args[1].args[0]
+    assert "209.235.0.1:443" in run_command_args[0].args[0]
+    assert "209.235.0.15:443" in run_command_args[1].args[0]
 
 
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
@@ -685,7 +685,7 @@ def testAgentNuclei_withCustomTemplates_RunScan(
     command = " ".join(run_command_args[0].args[0])
     assert "/nuclei/nuclei" in command
     assert "-u" in command
-    assert "209.235.136.112" in command
+    assert "209.235.136.112:443" in command
     assert "-j" in command
     assert "-irr" in command
     assert "-silent" in command
@@ -793,3 +793,35 @@ def testPrepareTargets_whenMessageIsDomainName_shouldReturnDomainName(
     assert nuclei_agent.prepare_targets(scan_message_ipv4_with_port) == [
         "192.168.0.1:8080"
     ]
+
+
+def testNucleiAgent_whenAnIpReceivedWithDifferentPort_shouldScanBothPorts(
+    scan_message_ipv4_with_port: message.Message,
+    nuclei_agent: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    prepare_targets_mock = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.prepare_targets", return_value=[]
+    )
+    nuclei_agent.process(scan_message_ipv4_with_port)
+    scan_message_ipv4_with_port.data["port"] = 8081
+
+    nuclei_agent.process(scan_message_ipv4_with_port)
+
+    assert prepare_targets_mock.call_count == 2
+
+
+def testNucleiAgent_whenAnIpReceivedWithSamePort_shouldScanOnce(
+    scan_message_ipv4_with_port: message.Message,
+    nuclei_agent: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    prepare_targets_mock = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.prepare_targets", return_value=[]
+    )
+    nuclei_agent.process(scan_message_ipv4_with_port)
+    scan_message_ipv4_with_port.data["port"] = 8080
+
+    nuclei_agent.process(scan_message_ipv4_with_port)
+
+    assert prepare_targets_mock.call_count == 1

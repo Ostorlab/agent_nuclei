@@ -235,7 +235,11 @@ def nuclei_agent_with_custom_templates(
             {
                 "name": "template_urls",
                 "value": ["https://template1.yaml", "https://template2.yaml"],
-            }
+            },
+            {
+                "name": "port",
+                "value": 443,
+            },
         ]
         settings = runtime_definitions.AgentSettings(
             key="agent/ostorlab/nuclei",
