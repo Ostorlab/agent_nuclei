@@ -313,11 +313,14 @@ class AgentNuclei(
         elif message.data.get("host") is not None:
             host = str(message.data.get("host"))
             mask = message.data.get("mask")
+            port = self._get_port(message)
             if mask is not None:
                 addresses = ipaddress.ip_network(f"{host}/{mask}", strict=False)
-                return self.ip_network_exists("agent_nuclei_asset", addresses)
+                return self.ip_network_exists(
+                    "agent_nuclei_asset", addresses, lambda ip: f"{ip}_{port}"
+                )
             else:
-                return self.set_is_member("agent_nuclei_asset", host)
+                return self.set_is_member("agent_nuclei_asset", f"{host}_{port}")
         else:
             logger.error("Unknown target %s", message)
             return True
@@ -333,11 +336,14 @@ class AgentNuclei(
         elif message.data.get("host") is not None:
             host = str(message.data.get("host"))
             mask = message.data.get("mask")
+            port = self._get_port(message)
             if mask is not None:
                 addresses = ipaddress.ip_network(f"{host}/{mask}", strict=False)
-                self.add_ip_network("agent_nuclei_asset", addresses)
+                self.add_ip_network(
+                    "agent_nuclei_asset", addresses, lambda host: f"{host}_{port}"
+                )
             else:
-                self.set_add("agent_nuclei_asset", host)
+                self.set_add("agent_nuclei_asset", f"{host}_{port}")
         else:
             logger.error("Unknown target %s", message)
             return
@@ -430,7 +436,8 @@ class AgentNuclei(
                         f"Subnet mask below {IPV6_CIDR_LIMIT} is not supported."
                     )
                 ip_network = ipaddress.ip_network(f"{host}/{mask}", strict=False)
-            return [str(h) for h in ip_network.hosts()]
+            port = self._get_port(message)
+            return [f"{h}:{port}" for h in ip_network.hosts()]
 
         elif (domain_name := message.data.get("name")) is not None:
             schema = self._get_schema(message)
