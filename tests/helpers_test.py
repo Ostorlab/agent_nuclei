@@ -63,7 +63,6 @@ def testBuildVulnLocation_whenMatchedAtIsIpv4WithScheme_returnsValidVulnLocation
     assert ipv4_asset.mask == "32"
 
 
-# add unit test to ensure that when matched_at has path, it is removed
 def testBuildVulnLocation_whenMatchedAtHasPath_returnsVulnLocation() -> None:
     """Ensure that when matched_at has a path, BuildVulnLocation returns a valid VulnLocation."""
     matched_at = "https://www.google.com/path/to/something"
