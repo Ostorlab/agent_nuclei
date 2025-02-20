@@ -93,7 +93,6 @@ def build_vuln_location(
     ip = None
     port = None
     potential_ip = matched_at
-
     if target.scheme != "":
         potential_ip = potential_ip.replace(f"{target.scheme}://", "")
     if is_ipv4(potential_ip) is True:

@@ -24,7 +24,9 @@ def testAgentNuclei_whenBinaryAvailable_RunScan(
     mock_report_vulnerability = mocker.patch(
         "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
     )
+
     nuclei_agent_no_url_scope.process(scan_message)
+
     mock_report_vulnerability.assert_called_once()
     assert (
         mock_report_vulnerability.call_args.kwargs["entry"].cvss_v3_vector
@@ -68,6 +70,7 @@ def testAgentNuclei_whenUrlTemplatesGiven_RunScan(
     mock_report_vulnerability = mocker.patch(
         "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
     )
+
     nuclei_agent_args.process(scan_message)
 
     run_command_mock.assert_called()
@@ -94,7 +97,6 @@ def testAgentNuclei_whenUrlTemplatesGiven_RunScan(
     assert "CVE1.yaml" in command
     assert "-t" in command
     assert "CVE2.yaml" in command
-
     mock_report_vulnerability.assert_called()
 
 
@@ -107,7 +109,9 @@ def testAgentNuclei_whenLinkMessageGiven_NotScan(
     """Tests running the agent and parsing the json output."""
     run_command_mock = mocker.patch("subprocess.run", return_value=None)
     mocker.patch("os.path.exists", return_value=True)
+
     nuclei_agent.process(scan_message_link_2)
+
     run_command_mock.assert_not_called()
 
 
@@ -120,7 +124,9 @@ def testAgentNuclei_whenDomainNameGiven_NotScan(
     """Tests running the agent and parsing the json output."""
     run_command_mock = mocker.patch("subprocess.run", return_value=None)
     mocker.patch("os.path.exists", return_value=True)
+
     nuclei_agent.process(scan_message_domain_2)
+
     run_command_mock.assert_not_called()
 
 
@@ -145,7 +151,9 @@ def testAgentNuclei_whenTemplatesProvided_scansAppWithTemplate(
     mocker.patch(
         "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
     )
+
     nuclei_agent_args.process(scan_message)
+
     run_command_mock.assert_called()
     run_command_args = run_command_mock.call_args_list
     command = " ".join(run_command_args[0].args[0])
@@ -197,7 +205,9 @@ def testAgentNuclei_whenMessageIsIpRange_scanMultipleTargets(
     mocker.patch(
         "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
     )
+
     nuclei_agent_no_url_scope.process(scan_message_network_range)
+
     run_command_mock.assert_called()
     run_command_args = run_command_mock.call_args_list
     assert "209.235.136.113:443" in run_command_args[0].args[0]
@@ -225,7 +235,9 @@ def testAgentNuclei_whenMessageIsDomain_scanMultipleTargets(
     mocker.patch(
         "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
     )
+
     nuclei_agent.process(scan_message_domain)
+
     run_command_mock.assert_called()
     run_command_args = run_command_mock.call_args_list
     assert "https://apple.com" in run_command_args[0].args[0]
@@ -252,7 +264,9 @@ def testAgentNuclei_whenMessageIsLargeIpRange_scanMultipleTargets(
     mocker.patch(
         "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
     )
+
     nuclei_agent_no_url_scope.process(scan_message_large_network_range)
+
     run_command_mock.assert_called()
     run_command_args = run_command_mock.call_args_list
     assert "209.235.0.1:443" in run_command_args[0].args[0]
@@ -267,7 +281,9 @@ def testAgentNuclei_whenLinkScanned_emitsExactIpWhereVulnWasFound(
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
+
     nuclei_agent_no_url_scope.process(ip_small_range_message)
+
     assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
     assert (
         agent_mock[0].data["vulnerability_location"]["domain_name"]["name"] == "web.com"
@@ -285,7 +301,9 @@ def testAgentNuclei_whenDomainDoesntExist_emitsDomainAsIs(
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
+
     nuclei_agent_no_url_scope.process(ip_small_range_message)
+
     assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
     assert (
         agent_mock[0].data["vulnerability_location"]["domain_name"]["name"]
@@ -324,7 +342,9 @@ def testAgentNuclei_whenIpScanned_emitsExactIpWhereVulnWasFound(
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
+
     nuclei_agent_no_url_scope.process(ip_small_range_message)
+
     assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
     assert ["ipv4"] in [
         list(a.data.get("vulnerability_location", {}).keys()) for a in agent_mock
@@ -342,7 +362,9 @@ def testAgentNuclei_whenIpv6Scanned_emitsExactIpWhereVulnWasFound(
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
+
     nuclei_agent_no_url_scope.process(ip_small_range_message)
+
     assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
     assert ["ipv6"] in [
         list(a.data.get("vulnerability_location", {}).keys()) for a in agent_mock
@@ -364,7 +386,9 @@ def testAgentNuclei_whenIpWithPortScanned_emitsExactIpWhereVulnWasFound(
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
+
     nuclei_agent_no_url_scope.process(ip_small_range_message)
+
     assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
     assert ["ipv4", "metadata"] in [
         list(a.data.get("vulnerability_location", {}).keys()) for a in agent_mock
@@ -383,6 +407,7 @@ def testAgentNuclei_whenLocationHasDomainAndPort_reportedLocationShouldOnlyHaveN
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
+
     nuclei_agent_no_url_scope.process(ip_small_range_message)
 
     assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
@@ -411,6 +436,7 @@ def testAgentNuclei_whenMessageIsDomainWithPort_scanMultipleTargets(
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
+
     nuclei_agent_no_url_scope.process(scan_message_domain)
 
     assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
@@ -448,6 +474,7 @@ def testAgentNuclei_whenMacthedAtIsInvalid_reportVuln(
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
+
     nuclei_agent_no_url_scope.process(scan_message_domain)
 
     assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
@@ -482,6 +509,7 @@ def testAgentNuclei_whenProcessFailed_agentNotCrash(
     mock_report_vulnerability = mocker.patch(
         "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
     )
+
     nuclei_agent_args.process(scan_message)
 
     run_command_mock.assert_called()
@@ -522,7 +550,9 @@ def testAgentNuclei_whenNucleiReportsCriticalFinding_emitsCriticalVulnerability(
     mock_report_vulnerability = mocker.patch(
         "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
     )
+
     nuclei_agent_no_url_scope.process(scan_message)
+
     mock_report_vulnerability.assert_called_once()
     assert (
         mock_report_vulnerability.call_args.kwargs["entry"].cvss_v3_vector
@@ -760,7 +790,6 @@ def testAgentNuclei_whenProxyIsProvided_shouldCallWithProxyArg(
 
     run_command_args = run_command_mock.call_args_list
     command = " ".join(run_command_args[0].args[0])
-
     assert "/nuclei/nuclei" in command
     assert "-proxy" in command
     assert "https://proxy.co" in command
