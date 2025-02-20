@@ -101,10 +101,13 @@ def build_vuln_location(
     elif is_ipv6(potential_ip) is True:
         asset = ipv6_asset.IPv6(host=str(potential_ip), version=6, mask="128")
     else:
+        full_url = parse.urlunparse(
+            (target.scheme, target.netloc, target.path, "", "", "")
+        )
         metadata.append(
             agent_report_vulnerability_mixin.VulnerabilityLocationMetadata(
                 metadata_type=agent_report_vulnerability_mixin.MetadataType.URL,
-                value=matched_at,
+                value=full_url,
             )
         )
         asset = domain_asset.DomainName(name=prepare_domain_asset(matched_at))

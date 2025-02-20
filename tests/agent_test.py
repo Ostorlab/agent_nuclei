@@ -444,6 +444,31 @@ def testAgentNuclei_whenMessageIsDomainWithPort_scanMultipleTargets(
         agent_mock[0].data["vulnerability_location"]["domain_name"]["name"]
         == "example.com"
     )
+    assert agent_mock[0].data["vulnerability_location"]["metadata"] == [
+        {"type": "URL", "value": "example.com:8080"}
+    ]
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_domain_query.json")
+def testAgentNuclei_whenMessageIsDomainWithQuery_vulnLocationMetadataDoesNotContainQuery(
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    scan_message_domain_query: message.Message,
+    agent_mock: list[message.Message],
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Tests running the agent and parsing the json output."""
+    mocker.patch("subprocess.run", return_value=None)
+
+    nuclei_agent_no_url_scope.process(scan_message_domain_query)
+
+    assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
+    assert (
+        agent_mock[0].data["vulnerability_location"]["domain_name"]["name"]
+        == "apple.com"
+    )
+    assert agent_mock[0].data["vulnerability_location"]["metadata"] == [
+        {"type": "URL", "value": "apple.com/path/to/something/"}
+    ]
 
 
 @pytest.mark.parametrize(
