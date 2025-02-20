@@ -203,7 +203,7 @@ class AgentNuclei(
                 template_info = nuclei_data_dict["info"]
                 extracted_results = nuclei_data_dict.get("extracted-results", [])
                 if len(extracted_results) > 0:
-                    technical_detail += f"""### {template_info.get('name')}: \n"""
+                    technical_detail += f"""### {template_info.get("name")}: \n"""
                     for value in extracted_results:
                         technical_detail += f"""* {value}\n"""
 
@@ -242,9 +242,11 @@ class AgentNuclei(
                 technical_detail += f"""```json\n  {scan_results} \n ``` """
 
                 severity = template_info.get("severity")
-
                 vuln_location = helpers.build_vuln_location(matched_at)
-
+                dna = helpers.compute_dna(
+                    vulnerability_title=template_info.get("name"),
+                    vuln_location=vuln_location,
+                )
                 self.report_vulnerability(
                     entry=kb.Entry(
                         title=template_info.get("name"),
@@ -266,6 +268,7 @@ class AgentNuclei(
                     vulnerability_location=vuln_location,
                     technical_detail=technical_detail,
                     risk_rating=NUCLEI_RISK_MAPPING[severity],
+                    dna=dna,
                 )
 
     def _get_references(
@@ -276,7 +279,7 @@ class AgentNuclei(
         cwe_list = template_info.get("classification", {}).get("cwe-id", [])
         if cwe_list is not None:
             for value in cwe_list:
-                link = f"""https://nvd.nist.gov/vuln/detail/{value.replace('cwe-', '')}.html"""
+                link = f"""https://nvd.nist.gov/vuln/detail/{value.replace("cwe-", "")}.html"""
                 references[value] = link
         cve_list = template_info.get("classification", {}).get("cve-id", [])
         if cve_list is not None:

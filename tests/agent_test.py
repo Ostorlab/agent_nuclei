@@ -41,6 +41,10 @@ def testAgentNuclei_whenBinaryAvailable_RunScan(
         mock_report_vulnerability.call_args.kwargs["risk_rating"]
         == agent_report_vulnerability_mixin.RiskRating.INFO
     )
+    assert (
+        mock_report_vulnerability.call_args.kwargs["dna"]
+        == "bf0634a8db1ae003602edeea25ac25327ba5a29b75fb89ea2968c18b69977c1a"
+    )
 
 
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
