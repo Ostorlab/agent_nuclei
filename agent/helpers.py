@@ -148,7 +148,7 @@ def prepare_domain_asset(url: str) -> str:
 
 def compute_dna(
     vulnerability_title: str,
-    vuln_location: agent_report_vulnerability_mixin.VulnerabilityLocation,
+    vuln_location: agent_report_vulnerability_mixin.VulnerabilityLocation | None,
 ) -> str:
     """Compute the DNA for the vulnerability.
 
@@ -160,7 +160,8 @@ def compute_dna(
         str: The DNA for the vulnerability.
     """
     dna_hasher = hashlib.sha256()
-    vuln_location_dict = vuln_location.to_dict()
+
+    if vuln_location is not None:
+        dna_hasher.update(json.dumps(vuln_location.to_dict()).encode("utf-8"))
     dna_hasher.update(vulnerability_title.encode("utf-8"))
-    dna_hasher.update(json.dumps(vuln_location_dict).encode("utf-8"))
     return dna_hasher.hexdigest()

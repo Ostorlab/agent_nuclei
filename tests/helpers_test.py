@@ -84,7 +84,7 @@ def testComputeDna_whenVulnerabilityTitleAndDomainName_returnsDna() -> None:
     dna = helpers.compute_dna(vulnerability_title, vuln_location)
 
     assert dna is not None
-    assert dna == "9d9334f22a089baf127931b9ffa512358531d961d160ddc3ba62e03e7b705400"
+    assert dna == "88041eb3eabb912cf355df800412af278c040bad2c9e0cd8096d811bf9e397c2"
 
 
 def testComputeDna_whenVulnerabilityTitleAndIpv4_returnsDna() -> None:
@@ -96,7 +96,7 @@ def testComputeDna_whenVulnerabilityTitleAndIpv4_returnsDna() -> None:
     dna = helpers.compute_dna(vulnerability_title, vuln_location)
 
     assert dna is not None
-    assert dna == "fd23df15dec3b9ec54f32b3ff5b46d11ad236c525eaf3e9ded85e913b3b356da"
+    assert dna == "e7ccdde03b453b2d1f7a6b52050783b9699f1cb8e048e20e639c8684cade6aab"
 
 
 def testComputeDna_whenVulnerabilityTitleAndIpv6_returnsDna() -> None:
@@ -108,4 +108,4 @@ def testComputeDna_whenVulnerabilityTitleAndIpv6_returnsDna() -> None:
     dna = helpers.compute_dna(vulnerability_title, vuln_location)
 
     assert dna is not None
-    assert dna == "eb5a5627d8627afa6c78b4e9f7d651a0411e717e9e0c3265dd0b903d91d38fe9"
+    assert dna == "c63c3702d0802e579e8c0288f2bac70115a52ad93e8b15f50bee0db2fda41cb1"
