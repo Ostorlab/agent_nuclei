@@ -1,6 +1,8 @@
 """Helper for nuclei Agent to complete the scan."""
 
+import hashlib
 import ipaddress
+import json
 import logging
 from typing import Tuple, cast, Optional
 from urllib import parse
@@ -142,3 +144,23 @@ def prepare_domain_asset(url: str) -> str:
         asset = result_neloc
 
     return asset
+
+
+def compute_dna(
+    vulnerability_title: str,
+    vuln_location: agent_report_vulnerability_mixin.VulnerabilityLocation,
+) -> str:
+    """Compute the DNA for the vulnerability.
+
+    Args:
+        vulnerability_title: The title of the vulnerability.
+        vuln_location: The location of the vulnerability.
+
+    Returns:
+        str: The DNA for the vulnerability.
+    """
+    dna_hasher = hashlib.sha256()
+    vuln_location_dict = vuln_location.to_dict()
+    dna_hasher.update(vulnerability_title.encode("utf-8"))
+    dna_hasher.update(json.dumps(vuln_location_dict).encode("utf-8"))
+    return dna_hasher.hexdigest()
