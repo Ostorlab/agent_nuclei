@@ -43,7 +43,7 @@ def testAgentNuclei_whenBinaryAvailable_RunScan(
     )
     assert (
         mock_report_vulnerability.call_args.kwargs["dna"]
-        == "bf0634a8db1ae003602edeea25ac25327ba5a29b75fb89ea2968c18b69977c1a"
+        == "b4bc4044ad59eec497a151d80ce409f011a6a1c7b78ea050a72d6dff402cb06c"
     )
 
 
@@ -269,12 +269,12 @@ def testAgentNuclei_whenLinkScanned_emitsExactIpWhereVulnWasFound(
     mocker.patch("subprocess.run", return_value=None)
     nuclei_agent_no_url_scope.process(ip_small_range_message)
     assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
-    assert ["domain_name"] in [
-        list(a.data.get("vulnerability_location", {}).keys()) for a in agent_mock
+    assert (
+        agent_mock[0].data["vulnerability_location"]["domain_name"]["name"] == "web.com"
+    )
+    assert agent_mock[0].data["vulnerability_location"]["metadata"] == [
+        {"type": "URL", "value": "https://web.com/"}
     ]
-    assert agent_mock[0].data["vulnerability_location"] == {
-        "domain_name": {"name": "web.com"}
-    }
 
 
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_non_domain.json")
@@ -287,12 +287,13 @@ def testAgentNuclei_whenDomainDoesntExist_emitsDomainAsIs(
     mocker.patch("subprocess.run", return_value=None)
     nuclei_agent_no_url_scope.process(ip_small_range_message)
     assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
-    assert ["domain_name"] in [
-        list(a.data.get("vulnerability_location", {}).keys()) for a in agent_mock
+    assert (
+        agent_mock[0].data["vulnerability_location"]["domain_name"]["name"]
+        == "web.comx"
+    )
+    assert agent_mock[0].data["vulnerability_location"]["metadata"] == [
+        {"type": "URL", "value": "https://web.comx/"}
     ]
-    assert agent_mock[0].data["vulnerability_location"] == {
-        "domain_name": {"name": "web.comx"}
-    }
 
 
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_domain.json")
@@ -303,14 +304,16 @@ def testAgentNuclei_whenDomainScanned_emitsExactDomainWhereVulnWasFound(
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
+
     nuclei_agent_no_url_scope.process(ip_small_range_message)
+
     assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
-    assert ["domain_name"] in [
-        list(a.data.get("vulnerability_location", {}).keys()) for a in agent_mock
+    assert (
+        agent_mock[0].data["vulnerability_location"]["domain_name"]["name"] == "web.com"
+    )
+    assert agent_mock[0].data["vulnerability_location"]["metadata"] == [
+        {"type": "URL", "value": "web.com"}
     ]
-    assert agent_mock[0].data["vulnerability_location"] == {
-        "domain_name": {"name": "web.com"}
-    }
 
 
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_ip.json")
@@ -386,10 +389,17 @@ def testAgentNuclei_whenLocationHasDomainAndPort_reportedLocationShouldOnlyHaveN
     assert ["domain_name", "metadata"] in [
         list(a.data.get("vulnerability_location", {}).keys()) for a in agent_mock
     ]
-    assert agent_mock[0].data["vulnerability_location"] == {
-        "domain_name": {"name": "web.com"},
-        "metadata": [{"value": "443", "type": "PORT"}],
-    }
+    assert (
+        agent_mock[0].data["vulnerability_location"]["domain_name"]["name"] == "web.com"
+    )
+    assert any(
+        metadata["type"] == "PORT" and metadata["value"] == "443"
+        for metadata in agent_mock[0].data["vulnerability_location"]["metadata"]
+    )
+    assert any(
+        metadata["type"] == "URL" and metadata["value"] == "https://web.com:443/"
+        for metadata in agent_mock[0].data["vulnerability_location"]["metadata"]
+    )
 
 
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_domain_port.json")

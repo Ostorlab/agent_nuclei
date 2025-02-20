@@ -93,6 +93,7 @@ def build_vuln_location(
     ip = None
     port = None
     potential_ip = matched_at
+
     if target.scheme != "":
         potential_ip = potential_ip.replace(f"{target.scheme}://", "")
     if is_ipv4(potential_ip) is True:
@@ -101,17 +102,24 @@ def build_vuln_location(
     elif is_ipv6(potential_ip) is True:
         asset = ipv6_asset.IPv6(host=str(potential_ip), version=6, mask="128")
     else:
+        metadata.append(
+            agent_report_vulnerability_mixin.VulnerabilityLocationMetadata(
+                metadata_type=agent_report_vulnerability_mixin.MetadataType.URL,
+                value=matched_at,
+            )
+        )
         asset = domain_asset.DomainName(name=prepare_domain_asset(matched_at))
 
     if target.port is not None or (ip is not None and port is not None):
         metadata_type = agent_report_vulnerability_mixin.MetadataType.PORT
         metadata_value = str(target.port) if target.port is not None else port
-        assert metadata_value is not None
-        metadata = [
-            agent_report_vulnerability_mixin.VulnerabilityLocationMetadata(
-                metadata_type=metadata_type, value=metadata_value
+        if metadata_value is not None:
+            metadata.append(
+                agent_report_vulnerability_mixin.VulnerabilityLocationMetadata(
+                    metadata_type=metadata_type, value=metadata_value
+                )
             )
-        ]
+
     return agent_report_vulnerability_mixin.VulnerabilityLocation(
         asset=asset, metadata=metadata
     )

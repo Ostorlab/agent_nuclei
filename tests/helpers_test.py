@@ -47,6 +47,36 @@ def testBuildVulnLocation_whenMatchedAtIsDomain_returnsVulnLocation() -> None:
     assert domain_asset.name == "www.google.com"
 
 
+def testBuildVulnLocation_whenMatchedAtIsDomainWithPath_returnsVulnLocationWithUrlMetadata() -> (
+    None
+):
+    """Ensure that when matched_at is a domain with a path, build_vuln_location returns a valid VulnLocation with URL metadata."""
+    matched_at = "https://www.google.com:443/path/to/something"
+
+    vuln_location = helpers.build_vuln_location(matched_at)
+
+    assert vuln_location is not None
+    domain_asset = vuln_location.asset
+    assert isinstance(domain_asset, domain_name.DomainName)
+    assert domain_asset.name == "www.google.com"
+    vuln_location_metadata = vuln_location.metadata
+    assert len(vuln_location_metadata) == 2
+    assert (
+        any(
+            metadata.metadata_type.name == "URL" and metadata.value == matched_at
+            for metadata in vuln_location_metadata
+        )
+        is True
+    )
+    assert (
+        any(
+            metadata.metadata_type.name == "PORT" and metadata.value == "443"
+            for metadata in vuln_location_metadata
+        )
+        is True
+    )
+
+
 def testBuildVulnLocation_whenMatchedAtIsIpv4WithScheme_returnsValidVulnLocation() -> (
     None
 ):
@@ -84,7 +114,7 @@ def testComputeDna_whenVulnerabilityTitleAndDomainName_returnsDna() -> None:
     dna = helpers.compute_dna(vulnerability_title, vuln_location)
 
     assert dna is not None
-    assert dna == "88041eb3eabb912cf355df800412af278c040bad2c9e0cd8096d811bf9e397c2"
+    assert dna == "7975a04d6c7cb1396b40bd795b8192e608dd121b7835424adff8c51b037efad6"
 
 
 def testComputeDna_whenVulnerabilityTitleAndIpv4_returnsDna() -> None:
@@ -109,3 +139,19 @@ def testComputeDna_whenVulnerabilityTitleAndIpv6_returnsDna() -> None:
 
     assert dna is not None
     assert dna == "c63c3702d0802e579e8c0288f2bac70115a52ad93e8b15f50bee0db2fda41cb1"
+
+
+def testComputeDna_whenSameDomainDifferentPaths_returnsDifferentDna() -> None:
+    """Ensure that when the same domain with different paths, ComputeDna returns different DNA."""
+    vulnerability_title = "Vulnerability Title Domain Name"
+    matched_at_1 = "https://www.google.com/path/to/something"
+    matched_at_2 = "https://www.google.com/another/path/to/something"
+    vuln_location_1 = helpers.build_vuln_location(matched_at_1)
+    vuln_location_2 = helpers.build_vuln_location(matched_at_2)
+
+    dna_1 = helpers.compute_dna(vulnerability_title, vuln_location_1)
+    dna_2 = helpers.compute_dna(vulnerability_title, vuln_location_2)
+
+    assert dna_1 is not None
+    assert dna_2 is not None
+    assert dna_1 != dna_2
