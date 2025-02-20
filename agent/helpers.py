@@ -160,7 +160,6 @@ def compute_dna(
         str: The DNA for the vulnerability.
     """
     dna_hasher = hashlib.sha256()
-
     if vuln_location is not None:
         dna_hasher.update(json.dumps(vuln_location.to_dict()).encode("utf-8"))
     dna_hasher.update(vulnerability_title.encode("utf-8"))
