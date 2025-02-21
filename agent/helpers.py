@@ -3,7 +3,7 @@
 import ipaddress
 import json
 import logging
-from typing import Tuple, cast, Optional, Any
+from typing import cast, Any
 from urllib import parse
 
 import tld
@@ -40,7 +40,7 @@ def is_ipv4(potential_ip: str) -> bool:
         return False
 
 
-def split_ipv4(potential_ip: str) -> Tuple[str, str | None]:
+def split_ipv4(potential_ip: str) -> tuple[str, str | None]:
     """split the potential_ip to get the ip and the port if existed.
 
     Args:
@@ -74,7 +74,7 @@ def is_ipv6(potential_ip: str) -> bool:
 
 def build_vuln_location(
     matched_at: str,
-) -> Optional[agent_report_vulnerability_mixin.VulnerabilityLocation]:
+) -> agent_report_vulnerability_mixin.VulnerabilityLocation | None:
     """Build VulnerabilityLocation based on the asset.
 
     Args:
