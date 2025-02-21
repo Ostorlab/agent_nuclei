@@ -417,13 +417,19 @@ def testAgentNuclei_whenLocationHasDomainAndPort_reportedLocationShouldOnlyHaveN
     assert (
         agent_mock[0].data["vulnerability_location"]["domain_name"]["name"] == "web.com"
     )
-    assert any(
-        metadata["type"] == "PORT" and metadata["value"] == "443"
-        for metadata in agent_mock[0].data["vulnerability_location"]["metadata"]
+    assert (
+        any(
+            metadata["type"] == "PORT" and metadata["value"] == "443"
+            for metadata in agent_mock[0].data["vulnerability_location"]["metadata"]
+        )
+        is True
     )
-    assert any(
-        metadata["type"] == "URL" and metadata["value"] == "https://web.com:443/"
-        for metadata in agent_mock[0].data["vulnerability_location"]["metadata"]
+    assert (
+        any(
+            metadata["type"] == "URL" and metadata["value"] == "https://web.com:443/"
+            for metadata in agent_mock[0].data["vulnerability_location"]["metadata"]
+        )
+        is True
     )
 
 
