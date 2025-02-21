@@ -45,7 +45,7 @@ def testAgentNuclei_whenBinaryAvailable_RunScan(
     )
     assert (
         mock_report_vulnerability.call_args.kwargs["dna"]
-        == "5e244d03fe1f25fca81da98d991d89176c19087a5ca29843e293995bc076d492"
+        == '{"location": {"domain_name": {"name": "web.com"}, "metadata": [{"type": "URL", "value": "https://web.com/"}]}, "title": "WAF Detection"}'
     )
 
 

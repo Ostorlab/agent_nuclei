@@ -1,10 +1,9 @@
 """Helper for nuclei Agent to complete the scan."""
 
-import hashlib
 import ipaddress
 import json
 import logging
-from typing import Tuple, cast, Optional
+from typing import Tuple, cast, Optional, Any
 from urllib import parse
 
 import tld
@@ -156,26 +155,45 @@ def prepare_domain_asset(url: str) -> str:
     return asset
 
 
+def sort_dict(d: dict[str, Any] | list[Any]) -> dict[str, Any] | list[Any]:
+    """Recursively sort dictionary keys and lists within.
+
+    Args:
+        d: The dictionary or list to sort.
+
+    Returns:
+        A sorted dictionary or list.
+    """
+    if isinstance(d, dict):
+        return {k: sort_dict(v) for k, v in sorted(d.items())}
+    if isinstance(d, list):
+        return sorted(
+            d,
+            key=lambda x: json.dumps(x, sort_keys=True)
+            if isinstance(x, dict)
+            else str(x),
+        )
+    return d
+
+
 def compute_dna(
     vulnerability_title: str,
-    vuln_location: agent_report_vulnerability_mixin.VulnerabilityLocation | None,
+    vuln_location: "agent_report_vulnerability_mixin.VulnerabilityLocation | None",
 ) -> str:
-    """Compute the DNA for the vulnerability.
+    """Compute a deterministic, debuggable DNA representation for a vulnerability.
 
     Args:
         vulnerability_title: The title of the vulnerability.
         vuln_location: The location of the vulnerability.
 
     Returns:
-        str: The DNA for the vulnerability.
+        A deterministic JSON representation of the vulnerability DNA.
     """
-    dna_hasher = hashlib.sha256()
+    dna_data: dict[str, Any] = {"title": vulnerability_title}
+
     if vuln_location is not None:
-        location_dict = vuln_location.to_dict()
-        # sort metadata to ensure consistent hash
-        location_dict["metadata"] = sorted(
-            location_dict["metadata"], key=lambda x: x["type"]
-        )
-        dna_hasher.update(json.dumps(location_dict, sort_keys=True).encode("utf-8"))
-    dna_hasher.update(vulnerability_title.encode("utf-8"))
-    return dna_hasher.hexdigest()
+        location_dict: dict[str, Any] = vuln_location.to_dict()
+        sorted_location_dict = sort_dict(location_dict)
+        dna_data["location"] = sorted_location_dict
+
+    return json.dumps(dna_data, sort_keys=True)

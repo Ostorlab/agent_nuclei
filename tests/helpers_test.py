@@ -3,6 +3,7 @@
 from ostorlab.assets import domain_name
 from ostorlab.assets import ipv4
 from ostorlab.assets import ipv6
+import pytest
 
 from agent import helpers
 
@@ -114,7 +115,10 @@ def testComputeDna_whenVulnerabilityTitleAndDomainName_returnsDna() -> None:
     dna = helpers.compute_dna(vulnerability_title, vuln_location)
 
     assert dna is not None
-    assert dna == "92b88517d093f9004fde3ec4141ff4a84714997f14629aa3c54db0c68feb3670"
+    assert (
+        dna
+        == '{"location": {"domain_name": {"name": "www.google.com"}, "metadata": [{"type": "URL", "value": "https://www.google.com/path/to/something"}]}, "title": "Vulnerability Title Domain Name"}'
+    )
 
 
 def testComputeDna_whenVulnerabilityTitleAndIpv4_returnsDna() -> None:
@@ -126,7 +130,10 @@ def testComputeDna_whenVulnerabilityTitleAndIpv4_returnsDna() -> None:
     dna = helpers.compute_dna(vulnerability_title, vuln_location)
 
     assert dna is not None
-    assert dna == "ae6d70d5a43832443cd33050b9a1a3b99cd84ca6807b68a212c90e82f5287cf7"
+    assert (
+        dna
+        == '{"location": {"ipv4": {"host": "70.70.70.70", "mask": "32", "version": 4}, "metadata": []}, "title": "Vulnerability Title IPv4"}'
+    )
 
 
 def testComputeDna_whenVulnerabilityTitleAndIpv6_returnsDna() -> None:
@@ -138,7 +145,10 @@ def testComputeDna_whenVulnerabilityTitleAndIpv6_returnsDna() -> None:
     dna = helpers.compute_dna(vulnerability_title, vuln_location)
 
     assert dna is not None
-    assert dna == "465730e95c267b4ed4f2c6a23293affd93dd0bd9e0e1e20c60d119d47db8abe6"
+    assert (
+        dna
+        == '{"location": {"ipv6": {"host": "2001:0db8:85a3:0000:0000:8a2e:0370:7334", "mask": "128", "version": 6}, "metadata": []}, "title": "Vulnerability Title IPv6"}'
+    )
 
 
 def testComputeDna_whenSameDomainDifferentPaths_returnsDifferentDna() -> None:
@@ -175,3 +185,28 @@ def testComputeDna_whenUnorderedDict_returnsConsistentDna() -> None:
     assert dna1 is not None
     assert dna2 is not None
     assert dna1 == dna2
+
+
+@pytest.mark.parametrize(
+    "unordered_dict, expected",
+    [
+        # Case: Dictionary keys are unordered
+        ({"b": 2, "a": 1, "c": 3}, {"a": 1, "b": 2, "c": 3}),
+        # Case: Nested dictionaries are also sorted
+        ({"z": {"b": 2, "a": 1}, "y": 3}, {"y": 3, "z": {"a": 1, "b": 2}}),
+        # Case: Lists inside dictionaries remain unchanged
+        ({"list": [3, 1, 2], "key": "value"}, {"key": "value", "list": [1, 2, 3]}),
+        # Case: Lists containing dictionaries get sorted by keys
+        (
+            {"list": [{"b": 2, "a": 1}, {"d": 4, "c": 3}]},
+            {"list": [{"a": 1, "b": 2}, {"c": 3, "d": 4}]},
+        ),
+        # Case: Empty dictionary remains unchanged
+        ({}, {}),
+        # Case: Dictionary with single key remains unchanged
+        ({"a": 1}, {"a": 1}),
+    ],
+)
+def testSortDict_always_returnsSortedDict(unordered_dict, expected):
+    """Ensure sort_dict correctly sorts dictionary keys recursively."""
+    assert helpers.sort_dict(unordered_dict) == expected
