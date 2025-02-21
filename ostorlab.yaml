@@ -1,6 +1,6 @@
 kind: Agent
 name: nuclei
-version: 1.0.8
+version: 1.0.9
 image: images/logo.png
 description: |
   This repository is an implementation of [Ostorlab Agent](https://pypi.org/project/ostorlab/) for the [Nuclei Scanner](https://github.com/projectdiscovery/nuclei) by Project Discovery.
