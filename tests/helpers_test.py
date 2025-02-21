@@ -167,6 +167,14 @@ def testComputeDna_whenSameDomainDifferentPaths_returnsDifferentDna() -> None:
     assert dna_1 is not None
     assert dna_2 is not None
     assert dna_1 != dna_2
+    assert (
+        dna_1
+        == '{"location": {"domain_name": {"name": "www.google.com"}, "metadata": [{"type": "URL", "value": "https://www.google.com/path/to/something"}]}, "title": "Vulnerability Title Domain Name"}'
+    )
+    assert (
+        dna_2
+        == '{"location": {"domain_name": {"name": "www.google.com"}, "metadata": [{"type": "URL", "value": "https://www.google.com/another/path/to/something"}]}, "title": "Vulnerability Title Domain Name"}'
+    )
 
 
 def testComputeDna_whenUnorderedDict_returnsConsistentDna() -> None:
