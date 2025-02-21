@@ -1,14 +1,23 @@
 FROM ubuntu:24.04 AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y software-properties-common  \
+RUN apt-get update && apt-get install -y software-properties-common git build-essential  \
     && add-apt-repository ppa:deadsnakes/ppa \
     && apt-get remove -y python*
 
 RUN apt-get -y install python3.11 python3.11-dev python3-pip wget zip wireguard iproute2
+
+RUN git clone https://github.com/NetworkConfiguration/openresolv.git && \
+    cd openresolv && \
+    ./configure && \
+    make && \
+    make install && \
+    cd .. && rm -rf openresolv
+
 COPY requirement.txt /requirement.txt
 RUN python3.11 -m pip install --upgrade setuptools
 RUN python3.11 -m pip install -r /requirement.txt
+
 RUN mkdir /nuclei
 WORKDIR /nuclei
 ARG NUCLEI_VERSION=3.2.4
