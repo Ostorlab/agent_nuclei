@@ -171,6 +171,11 @@ def compute_dna(
     """
     dna_hasher = hashlib.sha256()
     if vuln_location is not None:
-        dna_hasher.update(json.dumps(vuln_location.to_dict()).encode("utf-8"))
+        location_dict = vuln_location.to_dict()
+        # sort metadata to ensure consistent hash
+        location_dict["metadata"] = sorted(
+            location_dict["metadata"], key=lambda x: x["type"]
+        )
+        dna_hasher.update(json.dumps(location_dict, sort_keys=True).encode("utf-8"))
     dna_hasher.update(vulnerability_title.encode("utf-8"))
     return dna_hasher.hexdigest()

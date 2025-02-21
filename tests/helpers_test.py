@@ -155,3 +155,19 @@ def testComputeDna_whenSameDomainDifferentPaths_returnsDifferentDna() -> None:
     assert dna_1 is not None
     assert dna_2 is not None
     assert dna_1 != dna_2
+
+
+def testComputeDna_whenUnorderedDict_returnsConsistentDna() -> None:
+    """Ensure that ComputeDna returns a consistent DNA when vuln_location dictionary keys are unordered."""
+    vulnerability_title = "Vulnerability Title Unordered Dict"
+    matched_at = "https://www.google.com:8080/path/to/something"
+    vuln_location1 = helpers.build_vuln_location(matched_at)
+    vuln_location2 = helpers.build_vuln_location(matched_at)
+    vuln_location2.metadata = vuln_location2.metadata[::-1]
+
+    dna1 = helpers.compute_dna(vulnerability_title, vuln_location1)
+    dna2 = helpers.compute_dna(vulnerability_title, vuln_location2)
+
+    assert dna1 is not None
+    assert dna2 is not None
+    assert dna1 == dna2
