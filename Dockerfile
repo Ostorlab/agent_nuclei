@@ -17,7 +17,6 @@ RUN git clone https://github.com/NetworkConfiguration/openresolv.git && \
 COPY requirement.txt /requirement.txt
 RUN python3.11 -m pip install --upgrade setuptools
 RUN python3.11 -m pip install -r /requirement.txt
-
 RUN mkdir /nuclei
 WORKDIR /nuclei
 ARG NUCLEI_VERSION=3.2.4
