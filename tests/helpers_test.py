@@ -114,7 +114,7 @@ def testComputeDna_whenVulnerabilityTitleAndDomainName_returnsDna() -> None:
     dna = helpers.compute_dna(vulnerability_title, vuln_location)
 
     assert dna is not None
-    assert dna == "7975a04d6c7cb1396b40bd795b8192e608dd121b7835424adff8c51b037efad6"
+    assert dna == "92b88517d093f9004fde3ec4141ff4a84714997f14629aa3c54db0c68feb3670"
 
 
 def testComputeDna_whenVulnerabilityTitleAndIpv4_returnsDna() -> None:
@@ -126,7 +126,7 @@ def testComputeDna_whenVulnerabilityTitleAndIpv4_returnsDna() -> None:
     dna = helpers.compute_dna(vulnerability_title, vuln_location)
 
     assert dna is not None
-    assert dna == "e7ccdde03b453b2d1f7a6b52050783b9699f1cb8e048e20e639c8684cade6aab"
+    assert dna == "ae6d70d5a43832443cd33050b9a1a3b99cd84ca6807b68a212c90e82f5287cf7"
 
 
 def testComputeDna_whenVulnerabilityTitleAndIpv6_returnsDna() -> None:
@@ -138,7 +138,7 @@ def testComputeDna_whenVulnerabilityTitleAndIpv6_returnsDna() -> None:
     dna = helpers.compute_dna(vulnerability_title, vuln_location)
 
     assert dna is not None
-    assert dna == "c63c3702d0802e579e8c0288f2bac70115a52ad93e8b15f50bee0db2fda41cb1"
+    assert dna == "465730e95c267b4ed4f2c6a23293affd93dd0bd9e0e1e20c60d119d47db8abe6"
 
 
 def testComputeDna_whenSameDomainDifferentPaths_returnsDifferentDna() -> None:
@@ -163,6 +163,10 @@ def testComputeDna_whenUnorderedDict_returnsConsistentDna() -> None:
     matched_at = "https://www.google.com:8080/path/to/something"
     vuln_location1 = helpers.build_vuln_location(matched_at)
     vuln_location2 = helpers.build_vuln_location(matched_at)
+
+    assert vuln_location1 is not None
+    assert vuln_location2 is not None
+
     vuln_location2.metadata = vuln_location2.metadata[::-1]
 
     dna1 = helpers.compute_dna(vulnerability_title, vuln_location1)

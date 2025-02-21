@@ -45,7 +45,7 @@ def testAgentNuclei_whenBinaryAvailable_RunScan(
     )
     assert (
         mock_report_vulnerability.call_args.kwargs["dna"]
-        == "b4bc4044ad59eec497a151d80ce409f011a6a1c7b78ea050a72d6dff402cb06c"
+        == "5e244d03fe1f25fca81da98d991d89176c19087a5ca29843e293995bc076d492"
     )
 
 
