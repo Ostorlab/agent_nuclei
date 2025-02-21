@@ -24,7 +24,9 @@ def testAgentNuclei_whenBinaryAvailable_RunScan(
     mock_report_vulnerability = mocker.patch(
         "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
     )
+
     nuclei_agent_no_url_scope.process(scan_message)
+
     mock_report_vulnerability.assert_called_once()
     assert (
         mock_report_vulnerability.call_args.kwargs["entry"].cvss_v3_vector
@@ -43,7 +45,7 @@ def testAgentNuclei_whenBinaryAvailable_RunScan(
     )
     assert (
         mock_report_vulnerability.call_args.kwargs["dna"]
-        == "bf0634a8db1ae003602edeea25ac25327ba5a29b75fb89ea2968c18b69977c1a"
+        == '{"location": {"domain_name": {"name": "web.com"}, "metadata": [{"type": "URL", "value": "https://web.com/"}]}, "title": "WAF Detection"}'
     )
 
 
@@ -68,6 +70,7 @@ def testAgentNuclei_whenUrlTemplatesGiven_RunScan(
     mock_report_vulnerability = mocker.patch(
         "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
     )
+
     nuclei_agent_args.process(scan_message)
 
     run_command_mock.assert_called()
@@ -94,7 +97,6 @@ def testAgentNuclei_whenUrlTemplatesGiven_RunScan(
     assert "CVE1.yaml" in command
     assert "-t" in command
     assert "CVE2.yaml" in command
-
     mock_report_vulnerability.assert_called()
 
 
@@ -107,7 +109,9 @@ def testAgentNuclei_whenLinkMessageGiven_NotScan(
     """Tests running the agent and parsing the json output."""
     run_command_mock = mocker.patch("subprocess.run", return_value=None)
     mocker.patch("os.path.exists", return_value=True)
+
     nuclei_agent.process(scan_message_link_2)
+
     run_command_mock.assert_not_called()
 
 
@@ -120,7 +124,9 @@ def testAgentNuclei_whenDomainNameGiven_NotScan(
     """Tests running the agent and parsing the json output."""
     run_command_mock = mocker.patch("subprocess.run", return_value=None)
     mocker.patch("os.path.exists", return_value=True)
+
     nuclei_agent.process(scan_message_domain_2)
+
     run_command_mock.assert_not_called()
 
 
@@ -145,7 +151,9 @@ def testAgentNuclei_whenTemplatesProvided_scansAppWithTemplate(
     mocker.patch(
         "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
     )
+
     nuclei_agent_args.process(scan_message)
+
     run_command_mock.assert_called()
     run_command_args = run_command_mock.call_args_list
     command = " ".join(run_command_args[0].args[0])
@@ -197,7 +205,9 @@ def testAgentNuclei_whenMessageIsIpRange_scanMultipleTargets(
     mocker.patch(
         "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
     )
+
     nuclei_agent_no_url_scope.process(scan_message_network_range)
+
     run_command_mock.assert_called()
     run_command_args = run_command_mock.call_args_list
     assert "209.235.136.113:443" in run_command_args[0].args[0]
@@ -225,7 +235,9 @@ def testAgentNuclei_whenMessageIsDomain_scanMultipleTargets(
     mocker.patch(
         "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
     )
+
     nuclei_agent.process(scan_message_domain)
+
     run_command_mock.assert_called()
     run_command_args = run_command_mock.call_args_list
     assert "https://apple.com" in run_command_args[0].args[0]
@@ -252,7 +264,9 @@ def testAgentNuclei_whenMessageIsLargeIpRange_scanMultipleTargets(
     mocker.patch(
         "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
     )
+
     nuclei_agent_no_url_scope.process(scan_message_large_network_range)
+
     run_command_mock.assert_called()
     run_command_args = run_command_mock.call_args_list
     assert "209.235.0.1:443" in run_command_args[0].args[0]
@@ -267,14 +281,16 @@ def testAgentNuclei_whenLinkScanned_emitsExactIpWhereVulnWasFound(
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
+
     nuclei_agent_no_url_scope.process(ip_small_range_message)
+
     assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
-    assert ["domain_name"] in [
-        list(a.data.get("vulnerability_location", {}).keys()) for a in agent_mock
+    assert (
+        agent_mock[0].data["vulnerability_location"]["domain_name"]["name"] == "web.com"
+    )
+    assert agent_mock[0].data["vulnerability_location"]["metadata"] == [
+        {"type": "URL", "value": "https://web.com/"}
     ]
-    assert agent_mock[0].data["vulnerability_location"] == {
-        "domain_name": {"name": "web.com"}
-    }
 
 
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_non_domain.json")
@@ -285,14 +301,17 @@ def testAgentNuclei_whenDomainDoesntExist_emitsDomainAsIs(
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
+
     nuclei_agent_no_url_scope.process(ip_small_range_message)
+
     assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
-    assert ["domain_name"] in [
-        list(a.data.get("vulnerability_location", {}).keys()) for a in agent_mock
+    assert (
+        agent_mock[0].data["vulnerability_location"]["domain_name"]["name"]
+        == "web.comx"
+    )
+    assert agent_mock[0].data["vulnerability_location"]["metadata"] == [
+        {"type": "URL", "value": "https://web.comx/"}
     ]
-    assert agent_mock[0].data["vulnerability_location"] == {
-        "domain_name": {"name": "web.comx"}
-    }
 
 
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_domain.json")
@@ -303,14 +322,16 @@ def testAgentNuclei_whenDomainScanned_emitsExactDomainWhereVulnWasFound(
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
+
     nuclei_agent_no_url_scope.process(ip_small_range_message)
+
     assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
-    assert ["domain_name"] in [
-        list(a.data.get("vulnerability_location", {}).keys()) for a in agent_mock
+    assert (
+        agent_mock[0].data["vulnerability_location"]["domain_name"]["name"] == "web.com"
+    )
+    assert agent_mock[0].data["vulnerability_location"]["metadata"] == [
+        {"type": "URL", "value": "web.com"}
     ]
-    assert agent_mock[0].data["vulnerability_location"] == {
-        "domain_name": {"name": "web.com"}
-    }
 
 
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_ip.json")
@@ -321,7 +342,9 @@ def testAgentNuclei_whenIpScanned_emitsExactIpWhereVulnWasFound(
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
+
     nuclei_agent_no_url_scope.process(ip_small_range_message)
+
     assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
     assert ["ipv4"] in [
         list(a.data.get("vulnerability_location", {}).keys()) for a in agent_mock
@@ -339,7 +362,9 @@ def testAgentNuclei_whenIpv6Scanned_emitsExactIpWhereVulnWasFound(
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
+
     nuclei_agent_no_url_scope.process(ip_small_range_message)
+
     assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
     assert ["ipv6"] in [
         list(a.data.get("vulnerability_location", {}).keys()) for a in agent_mock
@@ -361,7 +386,9 @@ def testAgentNuclei_whenIpWithPortScanned_emitsExactIpWhereVulnWasFound(
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
+
     nuclei_agent_no_url_scope.process(ip_small_range_message)
+
     assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
     assert ["ipv4", "metadata"] in [
         list(a.data.get("vulnerability_location", {}).keys()) for a in agent_mock
@@ -380,16 +407,30 @@ def testAgentNuclei_whenLocationHasDomainAndPort_reportedLocationShouldOnlyHaveN
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
+
     nuclei_agent_no_url_scope.process(ip_small_range_message)
 
     assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
     assert ["domain_name", "metadata"] in [
         list(a.data.get("vulnerability_location", {}).keys()) for a in agent_mock
     ]
-    assert agent_mock[0].data["vulnerability_location"] == {
-        "domain_name": {"name": "web.com"},
-        "metadata": [{"value": "443", "type": "PORT"}],
-    }
+    assert (
+        agent_mock[0].data["vulnerability_location"]["domain_name"]["name"] == "web.com"
+    )
+    assert (
+        any(
+            metadata["type"] == "PORT" and metadata["value"] == "443"
+            for metadata in agent_mock[0].data["vulnerability_location"]["metadata"]
+        )
+        is True
+    )
+    assert (
+        any(
+            metadata["type"] == "URL" and metadata["value"] == "https://web.com:443/"
+            for metadata in agent_mock[0].data["vulnerability_location"]["metadata"]
+        )
+        is True
+    )
 
 
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_domain_port.json")
@@ -401,6 +442,7 @@ def testAgentNuclei_whenMessageIsDomainWithPort_scanMultipleTargets(
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
+
     nuclei_agent_no_url_scope.process(scan_message_domain)
 
     assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
@@ -408,6 +450,31 @@ def testAgentNuclei_whenMessageIsDomainWithPort_scanMultipleTargets(
         agent_mock[0].data["vulnerability_location"]["domain_name"]["name"]
         == "example.com"
     )
+    assert agent_mock[0].data["vulnerability_location"]["metadata"] == [
+        {"type": "URL", "value": "example.com:8080"}
+    ]
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_domain_query.json")
+def testAgentNuclei_whenMessageIsDomainWithQuery_vulnLocationMetadataDoesNotContainQuery(
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    scan_message_domain_query: message.Message,
+    agent_mock: list[message.Message],
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Tests running the agent and parsing the json output."""
+    mocker.patch("subprocess.run", return_value=None)
+
+    nuclei_agent_no_url_scope.process(scan_message_domain_query)
+
+    assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
+    assert (
+        agent_mock[0].data["vulnerability_location"]["domain_name"]["name"]
+        == "apple.com"
+    )
+    assert agent_mock[0].data["vulnerability_location"]["metadata"] == [
+        {"type": "URL", "value": "apple.com/path/to/something/"}
+    ]
 
 
 @pytest.mark.parametrize(
@@ -438,6 +505,7 @@ def testAgentNuclei_whenMacthedAtIsInvalid_reportVuln(
     mocker: plugin.MockerFixture,
 ) -> None:
     mocker.patch("subprocess.run", return_value=None)
+
     nuclei_agent_no_url_scope.process(scan_message_domain)
 
     assert "v3.report.vulnerability" in [a.selector for a in agent_mock]
@@ -472,6 +540,7 @@ def testAgentNuclei_whenProcessFailed_agentNotCrash(
     mock_report_vulnerability = mocker.patch(
         "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
     )
+
     nuclei_agent_args.process(scan_message)
 
     run_command_mock.assert_called()
@@ -512,7 +581,9 @@ def testAgentNuclei_whenNucleiReportsCriticalFinding_emitsCriticalVulnerability(
     mock_report_vulnerability = mocker.patch(
         "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
     )
+
     nuclei_agent_no_url_scope.process(scan_message)
+
     mock_report_vulnerability.assert_called_once()
     assert (
         mock_report_vulnerability.call_args.kwargs["entry"].cvss_v3_vector
@@ -750,7 +821,6 @@ def testAgentNuclei_whenProxyIsProvided_shouldCallWithProxyArg(
 
     run_command_args = run_command_mock.call_args_list
     command = " ".join(run_command_args[0].args[0])
-
     assert "/nuclei/nuclei" in command
     assert "-proxy" in command
     assert "https://proxy.co" in command
