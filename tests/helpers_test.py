@@ -1,5 +1,7 @@
 """Unit tests for the helpers module."""
 
+from typing import Any
+
 from ostorlab.assets import domain_name
 from ostorlab.assets import ipv4
 from ostorlab.assets import ipv6
@@ -207,6 +209,8 @@ def testComputeDna_whenUnorderedDict_returnsConsistentDna() -> None:
         ({"a": 1}, {"a": 1}),
     ],
 )
-def testSortDict_always_returnsSortedDict(unordered_dict, expected):
+def testSortDict_always_returnsSortedDict(
+    unordered_dict: dict[str, Any], expected: dict[str, Any]
+) -> None:
     """Ensure sort_dict correctly sorts dictionary keys recursively."""
     assert helpers.sort_dict(unordered_dict) == expected
