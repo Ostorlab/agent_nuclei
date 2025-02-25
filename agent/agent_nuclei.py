@@ -156,6 +156,7 @@ class AgentNuclei(
         if self._is_target_already_processed(message) is True:
             return
 
+        self._mark_target_as_processed(message)
         logger.info("Preparing targets ...")
         targets = self.prepare_targets(message)
         # Filter out all the target that are out of scope.
@@ -178,7 +179,6 @@ class AgentNuclei(
             if self.args.get("use_default_templates", True):
                 logger.debug("Running default templates.")
                 self._run_command(targets)
-        self._mark_target_as_processed(message)
         logger.info("Done scanning targets.")
 
     def _parse_output(self) -> None:
