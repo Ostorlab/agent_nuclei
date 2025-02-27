@@ -19,7 +19,7 @@ RUN python3.11 -m pip install --upgrade setuptools
 RUN python3.11 -m pip install -r /requirement.txt
 RUN mkdir /nuclei
 WORKDIR /nuclei
-ARG NUCLEI_VERSION=3.2.4
+ARG NUCLEI_VERSION=3.3.9
 RUN wget https://github.com/projectdiscovery/nuclei/releases/download/v${NUCLEI_VERSION}/nuclei_${NUCLEI_VERSION}_linux_amd64.zip && \
   unzip nuclei_${NUCLEI_VERSION}_linux_amd64.zip
 RUN mkdir -p /app/agent
