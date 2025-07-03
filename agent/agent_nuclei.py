@@ -297,6 +297,9 @@ class AgentNuclei(
 
     def _run_templates(self, targets: List[str]) -> None:
         """Run Nuclei scan on the provided templates"""
+        if self._template_urls is None or len(self._template_urls) == 0:
+            raise ValueError("No template URLs provided")
+
         templates = []
         with tempfile.TemporaryDirectory() as tmp_dir:
             file_path = pathlib.Path(tmp_dir)

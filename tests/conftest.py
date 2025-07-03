@@ -85,7 +85,7 @@ def nuclei_agent(
 ) -> agent_nuclei.AgentNuclei:
     with (pathlib.Path(__file__).parent.parent / "ostorlab.yaml").open() as yaml_o:
         definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
-        definition.args[4]["value"] = "([a-zA-Z]+://apple.com/?.*)"
+        definition.args[5]["value"] = "([a-zA-Z]+://apple.com/?.*)"
         settings = runtime_definitions.AgentSettings(
             key="agent/ostorlab/nuclei",
             bus_url="NA",
