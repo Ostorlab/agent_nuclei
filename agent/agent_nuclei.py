@@ -491,7 +491,7 @@ class AgentNuclei(
             if run_default_templates is False:
                 if templates is not None:
                     for template in templates:
-                        if path.exists(template):
+                        if path.exists(template) is True:
                             command.extend(["-t", template])
                 if self._template_ids is not None:
                     for template_id in self._template_ids:
