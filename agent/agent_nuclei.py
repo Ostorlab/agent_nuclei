@@ -135,6 +135,8 @@ class AgentNuclei(
         self._dns_config: str | None = self.args.get("dns_config")
         self._basic_credentials: list[BasicCredential] = []
         self._proxy: str | None = self.args.get("proxy")
+        self._template_ids: list[str] | None = self.args.get("template_ids")
+        self._template_urls: list[str] | None = self.args.get("template_urls")
 
     def start(self) -> None:
         """Enable VPN configuration at the beginning if needed."""
@@ -172,13 +174,15 @@ class AgentNuclei(
             message
         ) or build_basic_credential_from_args(self.args.get("basic_credentials"))
         if len(targets) > 0:
-            templates_urls = self.args.get("template_urls")
-            if templates_urls is not None:
+            if self._template_urls is not None:
                 logger.debug("Running custom templates.")
-                self._run_templates(templates_urls, targets)
+                self._run_templates(targets)
+            elif self._template_ids is not None:
+                self._run_command(targets, run_default_templates=False)
+
             if self.args.get("use_default_templates", True):
                 logger.debug("Running default templates.")
-                self._run_command(targets)
+                self._run_command(targets, run_default_templates=True)
         logger.info("Done scanning targets.")
 
     def _parse_output(self) -> None:
@@ -291,12 +295,15 @@ class AgentNuclei(
                 references[value] = value
         return references
 
-    def _run_templates(self, template_urls: List[str], targets: List[str]) -> None:
+    def _run_templates(self, targets: List[str]) -> None:
         """Run Nuclei scan on the provided templates"""
+        if self._template_urls is None or len(self._template_urls) == 0:
+            raise ValueError("No template URLs provided")
+
         templates = []
         with tempfile.TemporaryDirectory() as tmp_dir:
             file_path = pathlib.Path(tmp_dir)
-            for url in template_urls:
+            for url in self._template_urls:
                 r = requests.get(url, allow_redirects=True, timeout=60)
                 with (file_path / url.split("/")[-1]).open(mode="wb") as f:
                     f.write(r.content)
@@ -464,7 +471,10 @@ class AgentNuclei(
             return []
 
     def _run_command(
-        self, targets: List[str], templates: List[str] | None = None
+        self,
+        targets: List[str],
+        templates: List[str] | None = None,
+        run_default_templates: bool = False,
     ) -> None:
         """Run Nuclei command on the provided target using defined or default templates"""
         chunks = [
@@ -478,10 +488,14 @@ class AgentNuclei(
             for item in chunk:
                 command.extend(["-u", item])
             command.extend(["-j", "-irr", "-silent", "-o", OUTPUT_PATH])
-            if templates is not None:
-                for template in templates:
-                    if path.exists(template):
-                        command.extend(["-t", template])
+            if run_default_templates is False:
+                if templates is not None:
+                    for template in templates:
+                        if path.exists(template) is True:
+                            command.extend(["-t", template])
+                if self._template_ids is not None:
+                    for template_id in self._template_ids:
+                        command.extend(["-id", template_id])
 
             if len(self._basic_credentials) == 0:
                 self._run_nuclei_command(command)

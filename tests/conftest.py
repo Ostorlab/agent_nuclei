@@ -85,7 +85,7 @@ def nuclei_agent(
 ) -> agent_nuclei.AgentNuclei:
     with (pathlib.Path(__file__).parent.parent / "ostorlab.yaml").open() as yaml_o:
         definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
-        definition.args[4]["value"] = "([a-zA-Z]+://apple.com/?.*)"
+        definition.args[5]["value"] = "([a-zA-Z]+://apple.com/?.*)"
         settings = runtime_definitions.AgentSettings(
             key="agent/ostorlab/nuclei",
             bus_url="NA",
@@ -222,6 +222,37 @@ def nuclei_agent_with_proxy(
                     name="proxy",
                     type="string",
                     value=json.dumps("https://proxy.co").encode(),
+                )
+            ],
+            healthcheck_port=random.randint(5000, 6000),
+            redis_url="redis://guest:guest@localhost:6379",
+        )
+
+        agent_object = agent_nuclei.AgentNuclei(definition, settings)
+        return agent_object
+
+
+@pytest.fixture
+def nuclei_agent_with_template_ids(
+    agent_mock: list[message.Message],
+    agent_persist_mock: dict[str | bytes, str | bytes],
+) -> agent_nuclei.AgentNuclei:
+    with (pathlib.Path(__file__).parent.parent / "ostorlab.yaml").open() as yaml_o:
+        definition = agent_definitions.AgentDefinition.from_yaml(yaml_o)
+        settings = runtime_definitions.AgentSettings(
+            key="agent/ostorlab/nuclei",
+            bus_url="NA",
+            bus_exchange_topic="NA",
+            args=[
+                utils_definitions.Arg(
+                    name="template_ids",
+                    type="array",
+                    value=json.dumps(
+                        [
+                            "cve-2021-1234",
+                            "cve-2021-5678",
+                        ]
+                    ).encode(),
                 )
             ],
             healthcheck_port=random.randint(5000, 6000),
