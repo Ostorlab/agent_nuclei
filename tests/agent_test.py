@@ -740,6 +740,31 @@ def testAgentNuclei_whenBasicCredentialProvidedFromArgs_shouldRunCommandWithBasi
 
 
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
+def testAgentNuclei_withTemplateIds_RunScan(
+    scan_message: message.Message,
+    nuclei_agent_with_template_ids: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Tests running the agent when template_ids are provided."""
+    run_command_mock = mocker.patch("subprocess.run", return_value=None)
+    mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_with_template_ids.process(scan_message)
+
+    run_command_args = run_command_mock.call_args_list
+    command = " ".join(run_command_args[0].args[0])
+    assert "/nuclei/nuclei" in command
+    assert "-id" in command
+    assert "cve-2021-1234" in command
+    assert "cve-2021-5678" in command
+    assert "-t" not in command
+    command_default = " ".join(run_command_args[1].args[0])
+    assert "-id" not in command_default
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
 def testAgentNuclei_withCustomTemplates_RunScan(
     scan_message: message.Message,
     nuclei_agent_with_custom_templates: agent_nuclei.AgentNuclei,
