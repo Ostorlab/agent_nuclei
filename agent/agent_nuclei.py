@@ -314,7 +314,11 @@ class AgentNuclei(
 
     def _is_target_already_processed(self, message: m.Message) -> bool:
         """Checks if the target has already been processed before, relies on the redis server."""
-        if message.data.get("url") is not None or message.data.get("name") is not None:
+        if (
+            message.data.get("url") is not None
+            or message.data.get("name") is not None
+            or message.data.get("endpoint_url") is not None
+        ):
             unicity_check_key = self._get_unique_check_key(message)
             if unicity_check_key is None:
                 return True
@@ -337,7 +341,11 @@ class AgentNuclei(
 
     def _mark_target_as_processed(self, message: m.Message) -> None:
         """Mark the target as processed, relies on the redis server."""
-        if message.data.get("url") is not None or message.data.get("name") is not None:
+        if (
+            message.data.get("url") is not None
+            or message.data.get("name") is not None
+            or message.data.get("endpoint_url") is not None
+        ):
             unicity_check_key = self._get_unique_check_key(message)
             if unicity_check_key is None:
                 return
@@ -364,6 +372,10 @@ class AgentNuclei(
             target = self._get_target_from_url(message)
             if target is not None:
                 return f"{target.schema}_{target.name}_{target.port}"
+        elif message.data.get("endpoint_url") is not None:
+            target = self._get_target_from_url(message=message, field="endpoint_url")
+            if target is not None:
+                return f"{target.schema}_{target.name}_{target.port}"
         elif message.data.get("name") is not None:
             port = self._get_port(message)
             schema = self._get_schema(message)
@@ -371,9 +383,11 @@ class AgentNuclei(
             return f"{schema}_{domain}_{port}"
         return None
 
-    def _get_target_from_url(self, message: m.Message) -> Target | None:
+    def _get_target_from_url(
+        self, message: m.Message, field: str = "url"
+    ) -> Target | None:
         """Compute schema and port from a URL"""
-        url = message.data["url"]
+        url = message.data[field]
         parsed_url = parse.urlparse(url)
         if parsed_url.scheme not in SCHEME_TO_PORT:
             return None
@@ -467,6 +481,8 @@ class AgentNuclei(
 
         elif (url_temp := message.data.get("url")) is not None:
             return [url_temp]
+        elif (endpoint_url := message.data.get("endpoint_url")) is not None:
+            return [endpoint_url]
         else:
             return []
 

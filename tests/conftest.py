@@ -79,6 +79,39 @@ def scan_message_domain_query() -> message.Message:
 
 
 @pytest.fixture
+def scan_message_api_schema() -> message.Message:
+    """Creates a dummy message of type v3.asset.file.api_schema to be used by the agent for testing purposes."""
+    selector = "v3.asset.file.api_schema"
+    msg_data = {
+        "endpoint_url": "https://api.example.com/v1/users",
+        "schema_type": "openapi",
+    }
+    return message.Message.from_data(selector, data=msg_data)
+
+
+@pytest.fixture
+def scan_message_api_schema_with_port() -> message.Message:
+    """Creates a dummy message of type v3.asset.file.api_schema with port to be used by the agent for testing purposes."""
+    selector = "v3.asset.file.api_schema"
+    msg_data = {
+        "endpoint_url": "https://api.example.com:8443/v1/users",
+        "schema_type": "openapi",
+    }
+    return message.Message.from_data(selector, data=msg_data)
+
+
+@pytest.fixture
+def scan_message_api_schema_http() -> message.Message:
+    """Creates a dummy message of type v3.asset.file.api_schema with http protocol to be used by the agent for testing purposes."""
+    selector = "v3.asset.file.api_schema"
+    msg_data = {
+        "endpoint_url": "http://api.example.com/v1/data",
+        "schema_type": "swagger",
+    }
+    return message.Message.from_data(selector, data=msg_data)
+
+
+@pytest.fixture
 def nuclei_agent(
     agent_mock: list[message.Message],
     agent_persist_mock: dict[str | bytes, str | bytes],
