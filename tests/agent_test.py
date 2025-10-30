@@ -932,3 +932,89 @@ def testNucleiAgent_whenAnIpReceivedWithSamePort_shouldScanOnce(
     nuclei_agent.process(scan_message_ipv4_with_port)
 
     assert prepare_targets_mock.call_count == 1
+
+
+def testPrepareTargets_whenMessageIsApiSchema_shouldReturnEndpointUrl(
+    scan_message_api_schema: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+) -> None:
+    """Test that api_schema messages with endpoint_url are correctly prepared as targets."""
+    targets = nuclei_agent_no_url_scope.prepare_targets(scan_message_api_schema)
+
+    assert targets == ["https://api.example.com/v1/users"]
+
+
+def testPrepareTargets_whenMessageIsApiSchemaWithPort_shouldReturnEndpointUrlWithPort(
+    scan_message_api_schema_with_port: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+) -> None:
+    """Test that api_schema messages with endpoint_url containing port are correctly prepared."""
+    targets = nuclei_agent_no_url_scope.prepare_targets(
+        scan_message_api_schema_with_port
+    )
+
+    assert targets == ["https://api.example.com:8443/v1/users"]
+
+
+def testPrepareTargets_whenMessageIsApiSchemaHttp_shouldReturnHttpEndpointUrl(
+    scan_message_api_schema_http: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+) -> None:
+    """Test that api_schema messages with http protocol are correctly prepared."""
+    targets = nuclei_agent_no_url_scope.prepare_targets(scan_message_api_schema_http)
+
+    assert targets == ["http://api.example.com/v1/data"]
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
+def testAgentNuclei_whenApiSchemaMessageReceived_shouldRunScan(
+    scan_message_api_schema: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Test that the agent processes api_schema messages and runs nuclei scan."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message_api_schema)
+
+    mock_report_vulnerability.assert_called_once()
+    assert (
+        mock_report_vulnerability.call_args.kwargs["entry"].cvss_v3_vector
+        == "CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:N"
+    )
+
+
+def testNucleiAgent_whenSameApiSchemaReceivedTwice_shouldScanOnce(
+    scan_message_api_schema: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Test that duplicate api_schema messages are only processed once."""
+    prepare_targets_mock = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.prepare_targets", return_value=[]
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message_api_schema)
+    nuclei_agent_no_url_scope.process(scan_message_api_schema)
+
+    assert prepare_targets_mock.call_count == 1
+
+
+def testNucleiAgent_whenDifferentApiSchemaEndpoints_shouldScanBoth(
+    scan_message_api_schema: message.Message,
+    scan_message_api_schema_http: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Test that different api_schema endpoints are both scanned."""
+    prepare_targets_mock = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.prepare_targets", return_value=[]
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message_api_schema)
+    nuclei_agent_no_url_scope.process(scan_message_api_schema_http)
+
+    assert prepare_targets_mock.call_count == 2
