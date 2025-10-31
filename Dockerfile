@@ -15,8 +15,9 @@ RUN git clone https://github.com/NetworkConfiguration/openresolv.git && \
     cd .. && rm -rf openresolv
 
 COPY requirement.txt /requirement.txt
-RUN python3.11 -m pip install --upgrade setuptools
-RUN python3.11 -m pip install -r /requirement.txt
+RUN python3.11 -m pip install uv
+RUN python3.11 -m uv pip install --upgrade setuptools
+RUN python3.11 -m uv pip install -r /requirement.txt
 RUN mkdir /nuclei
 WORKDIR /nuclei
 ARG NUCLEI_VERSION=3.3.9
