@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y software-properties-common git build-es
     && add-apt-repository ppa:deadsnakes/ppa \
     && apt-get remove -y python*
 
-RUN apt-get -y install python3.11 python3.11-dev python3-pip wget zip wireguard iproute2
+RUN apt-get -y install python3.14 python3.14-dev python3-pip wget zip wireguard iproute2
 
 RUN git clone https://github.com/NetworkConfiguration/openresolv.git && \
     cd openresolv && \
@@ -15,9 +15,9 @@ RUN git clone https://github.com/NetworkConfiguration/openresolv.git && \
     cd .. && rm -rf openresolv
 
 COPY requirement.txt /requirement.txt
-RUN python3.11 -m pip install uv
-RUN python3.11 -m uv pip install --upgrade setuptools
-RUN python3.11 -m uv pip install -r /requirement.txt
+RUN python3.14 -m pip install uv
+RUN python3.14 -m uv pip install --upgrade setuptools
+RUN python3.14 -m uv pip install -r /requirement.txt
 RUN mkdir /nuclei
 WORKDIR /nuclei
 ARG NUCLEI_VERSION=3.6.2
@@ -28,4 +28,4 @@ ENV PYTHONPATH=/app
 COPY agent /app/agent
 COPY ostorlab.yaml /app/agent/ostorlab.yaml
 WORKDIR /app
-CMD ["python3.11", "/app/agent/agent_nuclei.py"]
+CMD ["python3.14", "/app/agent/agent_nuclei.py"]
