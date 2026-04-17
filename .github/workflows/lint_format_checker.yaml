@@ -24,5 +24,3 @@ jobs:
           args: format --check
       - name: Running linter.
         uses: chartboost/ruff-action@v1
-        with:
-          args: lint
