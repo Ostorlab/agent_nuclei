@@ -1,13 +1,12 @@
 """Pytest fixture for the nuclei agent_nuclei."""
 
+import json
 import pathlib
 import random
-import json
 
 import pytest
-
-from ostorlab.agent.message import message
 from ostorlab.agent import definitions as agent_definitions
+from ostorlab.agent.message import message
 from ostorlab.runtimes import definitions as runtime_definitions
 from ostorlab.utils import definitions as utils_definitions
 

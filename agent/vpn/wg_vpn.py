@@ -1,9 +1,8 @@
 """Enable VPN connection through wireguard."""
 
+import logging
 import pathlib
 import subprocess
-import logging
-
 
 logger = logging.getLogger(__name__)
 WG_CONF_DEFAULT_PATH = "/etc/wireguard/wg0.conf"
