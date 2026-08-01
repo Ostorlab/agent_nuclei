@@ -2,10 +2,8 @@
 
 from typing import Any
 
-from ostorlab.assets import domain_name
-from ostorlab.assets import ipv4
-from ostorlab.assets import ipv6
 import pytest
+from ostorlab.assets import domain_name, ipv4, ipv6
 
 from agent import helpers
 

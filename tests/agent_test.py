@@ -9,8 +9,7 @@ from ostorlab.agent.message import message
 from ostorlab.agent.mixins import agent_report_vulnerability_mixin
 from pytest_mock import plugin
 
-from agent import agent_nuclei
-from agent import helpers
+from agent import agent_nuclei, helpers
 
 
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")

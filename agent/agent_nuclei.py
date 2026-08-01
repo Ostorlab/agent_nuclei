@@ -1,5 +1,6 @@
 """Agent implementation for nuclei scanner."""
 
+import base64
 import dataclasses
 import ipaddress
 import json
@@ -9,22 +10,19 @@ import re
 import subprocess
 import tempfile
 from os import path
-from typing import Dict, List, Optional, cast
+from typing import cast
 from urllib import parse
-import base64
 
 import requests
 from ostorlab.agent import agent
 from ostorlab.agent import definitions as agent_definitions
 from ostorlab.agent.kb import kb
 from ostorlab.agent.message import message as m
-from ostorlab.agent.mixins import agent_persist_mixin
-from ostorlab.agent.mixins import agent_report_vulnerability_mixin
+from ostorlab.agent.mixins import agent_persist_mixin, agent_report_vulnerability_mixin
 from ostorlab.runtimes import definitions as runtime_definitions
 from rich import logging as rich_logging
 
-from agent import formatters
-from agent import helpers
+from agent import formatters, helpers
 from agent.vpn import wg_vpn
 
 FINDING_MAX_SIZE = 4096
@@ -60,8 +58,8 @@ IPV6_CIDR_LIMIT = 112
 @dataclasses.dataclass
 class Target:
     name: str
-    schema: Optional[str] = None
-    port: Optional[int] = None
+    schema: str | None = None
+    port: int | None = None
 
 
 @dataclasses.dataclass
@@ -276,8 +274,8 @@ class AgentNuclei(
                 )
 
     def _get_references(
-        self, template_info: Dict[str, Dict[str, List[str]]]
-    ) -> Dict[str, str]:
+        self, template_info: dict[str, dict[str, list[str]]]
+    ) -> dict[str, str]:
         """Generate dict references from nuclei references template"""
         references = {}
         cwe_list = template_info.get("classification", {}).get("cwe-id", [])
@@ -295,7 +293,7 @@ class AgentNuclei(
                 references[value] = value
         return references
 
-    def _run_templates(self, targets: List[str]) -> None:
+    def _run_templates(self, targets: list[str]) -> None:
         """Run Nuclei scan on the provided templates"""
         if self._template_urls is None or len(self._template_urls) == 0:
             raise ValueError("No template URLs provided")
@@ -307,7 +305,7 @@ class AgentNuclei(
                 r = requests.get(url, allow_redirects=True, timeout=60)
                 with (file_path / url.split("/")[-1]).open(mode="wb") as f:
                     f.write(r.content)
-                templates.append(str((file_path / url.split("/")[-1])))
+                templates.append(str(file_path / url.split("/")[-1]))
 
             if len(templates) > 0:
                 self._run_command(targets, templates)
@@ -434,7 +432,7 @@ class AgentNuclei(
         else:
             return "http"
 
-    def prepare_targets(self, message: m.Message) -> List[str]:
+    def prepare_targets(self, message: m.Message) -> list[str]:
         """Prepare targets based on type, if a domain name is provided, port and protocol are collected
         from the config.
 
@@ -488,8 +486,8 @@ class AgentNuclei(
 
     def _run_command(
         self,
-        targets: List[str],
-        templates: List[str] | None = None,
+        targets: list[str],
+        templates: list[str] | None = None,
         run_default_templates: bool = False,
     ) -> None:
         """Run Nuclei command on the provided target using defined or default templates"""
@@ -523,15 +521,14 @@ class AgentNuclei(
         try:
             subprocess.run(
                 command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                capture_output=True,
                 check=True,
             )
             self._parse_output()
         except subprocess.CalledProcessError as e:
             logger.error("Error running nuclei %s", e)
 
-    def _should_process_target(self, scope_urls_regex: Optional[str], url: str) -> bool:
+    def _should_process_target(self, scope_urls_regex: str | None, url: str) -> bool:
         if scope_urls_regex is None:
             return True
         link_in_scan_domain = re.match(scope_urls_regex, url) is not None

@@ -3,7 +3,7 @@
 import ipaddress
 import json
 import logging
-from typing import cast, Any
+from typing import Any, cast
 from urllib import parse
 
 import tld
