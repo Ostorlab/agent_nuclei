@@ -986,6 +986,55 @@ def testAgentNuclei_whenApiSchemaMessageReceived_shouldRunScan(
     )
 
 
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH",
+    "./tests/result_nuclei_fortios_cloudflare_fp.json",
+)
+def testAgentNuclei_whenFortiosCveMatchesCloudflareHost_stripsFabricatedCveAttribution(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """A product-specific CVE finding served by a CDN must lose its fabricated CVE."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_called_once()
+    references = mock_report_vulnerability.call_args.kwargs["entry"].references
+    assert "CVE-2016-3978" not in references
+    assert "cwe-601" in references
+    technical_detail = mock_report_vulnerability.call_args.kwargs["technical_detail"]
+    assert "CVE attribution removed" in technical_detail
+    assert "CVE-2016-3978" in technical_detail
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_fortios_legit.json"
+)
+def testAgentNuclei_whenFortiosCveMatchesFortiosHost_keepsCveAttribution(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """A product-specific CVE finding served by the matching product keeps its CVE."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_called_once()
+    references = mock_report_vulnerability.call_args.kwargs["entry"].references
+    assert "CVE-2016-3978" in references
+    technical_detail = mock_report_vulnerability.call_args.kwargs["technical_detail"]
+    assert "CVE attribution removed" not in technical_detail
+
+
 def testNucleiAgent_whenSameApiSchemaReceivedTwice_shouldScanOnce(
     scan_message_api_schema: message.Message,
     nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,

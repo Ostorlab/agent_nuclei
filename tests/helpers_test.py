@@ -220,3 +220,81 @@ def testSortDict_always_returnsSortedDict(
 ) -> None:
     """Ensure sort_dict correctly sorts dictionary keys recursively."""
     assert helpers.sort_dict(unordered_dict) == expected
+
+
+@pytest.mark.parametrize(
+    "response, expected",
+    [
+        (None, None),
+        ("", None),
+        ("HTTP/1.1 200 OK\r\n\r\nbody", None),
+        ("HTTP/1.1 302 Found\r\nServer: cloudflare\r\nLocation: x\r\n", "cloudflare"),
+        ("HTTP/1.1 302 Found\r\nserver: CloudFlare\r\n", "CloudFlare"),
+        ("HTTP/1.1 200 OK\nServer: nginx\n", "nginx"),
+        ("HTTP/1.1 200 OK\r\nServer: cloudflare\r\n", "cloudflare"),
+    ],
+)
+def testExtractServerHeader_whenResponseGiven_returnsHeaderValue(
+    response: str | None, expected: str | None
+) -> None:
+    """Ensure the Server header is extracted case-insensitively and trailing CR stripped."""
+    assert helpers.extract_server_header(response) == expected
+
+
+def testIsProductFingerprintMismatch_whenCdnServesOnPremProduct_returnsTrue() -> None:
+    """A FortiOS CVE finding served by Cloudflare is a fabricated attribution."""
+    nuclei_data = {
+        "response": "HTTP/1.1 302 Found\r\nServer: cloudflare\r\nLocation: x\r\n",
+        "matched-at": "https://example.com/login?redir=http://example.com",
+        "info": {
+            "name": "Fortinet FortiOS Open Redirect",
+            "tags": ["fortios", "fortinet", "redirect"],
+            "classification": {"cve-id": ["CVE-2016-3978"]},
+        },
+    }
+
+    assert helpers.is_product_fingerprint_mismatch(nuclei_data) is True
+
+
+def testIsProductFingerprintMismatch_whenCdnServesGenericProduct_returnsFalse() -> None:
+    """A generic finding served by Cloudflare without on-prem product tokens is kept."""
+    nuclei_data = {
+        "response": "HTTP/1.1 200 OK\r\nServer: cloudflare\r\n",
+        "matched-at": "https://example.com/",
+        "info": {
+            "name": "WAF Detection",
+            "tags": ["waf", "tech", "misc"],
+            "classification": {"cve-id": []},
+        },
+    }
+
+    assert helpers.is_product_fingerprint_mismatch(nuclei_data) is False
+
+
+def testIsProductFingerprintMismatch_whenOnPremProductNotServedByCdn_returnsFalse() -> (
+    None
+):
+    """A FortiOS finding served by a non-CDN server keeps its CVE attribution."""
+    nuclei_data = {
+        "response": "HTTP/1.1 302 Found\r\nServer:  \r\nLocation: x\r\n",
+        "matched-at": "https://forti.example.com/remote/login?redir=http://example.com",
+        "info": {
+            "name": "Fortinet FortiOS Open Redirect",
+            "tags": ["fortios", "fortinet"],
+            "classification": {"cve-id": ["CVE-2016-3978"]},
+        },
+    }
+
+    assert helpers.is_product_fingerprint_mismatch(nuclei_data) is False
+
+
+def testIsProductFingerprintMismatch_whenResponseIsAbsent_returnsFalse() -> None:
+    """When no response is captured, no mismatch can be determined."""
+    nuclei_data = {
+        "info": {
+            "name": "Fortinet FortiOS Open Redirect",
+            "tags": ["fortios"],
+        },
+    }
+
+    assert helpers.is_product_fingerprint_mismatch(nuclei_data) is False

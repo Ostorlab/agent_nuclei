@@ -10,7 +10,7 @@ import re
 import subprocess
 import tempfile
 from os import path
-from typing import cast
+from typing import Any, cast
 from urllib import parse
 
 import requests
@@ -228,6 +228,11 @@ class AgentNuclei(
                     )
                     technical_detail += f""" #### Response:  \n```{req_type}  \n{truncated_reponse}\n``` \n """
 
+                if helpers.is_product_fingerprint_mismatch(nuclei_data_dict):
+                    technical_detail = self._strip_fabricated_cve_attribution(
+                        template_info, technical_detail
+                    )
+
                 nuclei_data_dict.pop("template", None)
                 nuclei_data_dict.pop("template-id", None)
                 nuclei_data_dict.pop("template-url", None)
@@ -292,6 +297,45 @@ class AgentNuclei(
             for value in template_info["reference"]:
                 references[value] = value
         return references
+
+    def _strip_fabricated_cve_attribution(
+        self,
+        template_info: dict[str, Any],
+        technical_detail: str,
+    ) -> str:
+        """Strip fabricated CVE references from a fingerprint-mismatched finding.
+
+        When the captured response is served by a CDN/WAF while the template
+        attributes the finding to an on-prem appliance product, the CVE (and the
+        downstream CPE derived from it) is fabricated. The genuine finding is
+        kept, but the fabricated CVE references are removed and a note is
+        prepended to the technical detail.
+
+        Args:
+            template_info: The nuclei finding ``info`` dictionary.
+            technical_detail: The technical detail built so far.
+
+        Returns:
+            The updated technical detail with a removal note prepended.
+        """
+        classification = template_info.get("classification")
+        if not isinstance(classification, dict):
+            return technical_detail
+        fabricated_cves = classification.get("cve-id") or []
+        classification["cve-id"] = []
+        removed = ", ".join(fabricated_cves) if fabricated_cves else "N/A"
+        logger.warning(
+            "Stripped fabricated CVE attribution %s due to product fingerprint "
+            "mismatch.",
+            fabricated_cves,
+        )
+        return (
+            "#### CVE attribution removed\n"
+            "The captured response is served by a CDN/WAF, which contradicts the "
+            "on-prem appliance product this template attributes the finding to. "
+            f"Removed likely-fabricated CVE references: {removed}.\n\n"
+            + technical_detail
+        )
 
     def _run_templates(self, targets: list[str]) -> None:
         """Run Nuclei scan on the provided templates"""

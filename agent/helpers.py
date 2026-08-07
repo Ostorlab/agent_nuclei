@@ -1,8 +1,10 @@
 """Helper for nuclei Agent to complete the scan."""
 
+import collections.abc
 import ipaddress
 import json
 import logging
+import re
 from typing import Any, cast
 from urllib import parse
 
@@ -21,6 +23,93 @@ logging.basicConfig(
     force=True,
 )
 logger = logging.getLogger(__name__)
+
+
+# Lowercased `Server` header tokens identifying CDN/WAF/edge-proxy products
+# that serve their own responses on behalf of an origin. A finding served by
+# one of these cannot be attributed to an on-prem appliance CVE.
+CDN_SERVER_TOKENS: tuple[str, ...] = (
+    "cloudflare",
+    "akamai",
+    "incapsula",
+    "sucuri",
+    "imperva",
+    "fastly",
+    "cloudfront",
+    "awselb",
+    "varnish",
+    "envoy",
+)
+
+# Lowercased product-family keywords for on-prem/network appliance products
+# whose CVEs cannot legitimately be served behind a CDN/WAF.
+ON_PREM_PRODUCT_TOKENS: tuple[str, ...] = (
+    "fortios",
+    "fortinet",
+    "cisco",
+    "juniper",
+    "junos",
+    "paloalto",
+    "pan-os",
+    "sonicwall",
+    "sophos",
+    "watchguard",
+    "hillstone",
+    "checkpoint",
+    "check point",
+)
+
+_SERVER_HEADER_RE = re.compile(r"(?im)^server:\s*(.+)$")
+
+
+def extract_server_header(response: str | None) -> str | None:
+    """Extract the value of the ``Server`` HTTP header from a raw response.
+
+    Args:
+        response: The raw HTTP response captured by nuclei, or ``None``.
+
+    Returns:
+        The ``Server`` header value (stripped), or ``None`` when absent.
+    """
+    if not response:
+        return None
+    match = _SERVER_HEADER_RE.search(response)
+    if match is None:
+        return None
+    return match.group(1).strip()
+
+
+def is_product_fingerprint_mismatch(
+    nuclei_data: collections.abc.Mapping[str, Any],
+) -> bool:
+    """Detect when a finding's CVE attribution conflicts with the served product.
+
+    A nuclei template can match on generic behaviour (e.g. an open redirect)
+    while attributing the finding to a specific on-prem appliance product via
+    its CVE/CPE. When the captured response is served by a CDN/WAF, that
+    product attribution is fabricated.
+
+    Args:
+        nuclei_data: A single nuclei finding dictionary.
+
+    Returns:
+        ``True`` when the response is served by a known CDN/WAF while the
+        template attributes the finding to an on-prem appliance product.
+    """
+    server = extract_server_header(nuclei_data.get("response"))
+    if server is None:
+        return False
+    server_lower = server.lower()
+    if not any(token in server_lower for token in CDN_SERVER_TOKENS):
+        return False
+    info = nuclei_data.get("info") or {}
+    attributed_parts: list[str] = [str(info.get("name", ""))]
+    attributed_parts.extend(str(tag) for tag in info.get("tags") or [])
+    matched_at = nuclei_data.get("matched-at")
+    if matched_at is not None:
+        attributed_parts.append(str(matched_at))
+    attributed_text = " ".join(attributed_parts).lower()
+    return any(token in attributed_text for token in ON_PREM_PRODUCT_TOKENS)
 
 
 def is_ipv4(potential_ip: str) -> bool:
