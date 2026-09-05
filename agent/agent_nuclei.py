@@ -53,6 +53,8 @@ STORAGE_NAME = "agent_nuclei"
 MAX_TARGETS_COMMAND_LINE = 10
 IPV4_CIDR_LIMIT = 16
 IPV6_CIDR_LIMIT = 112
+NUCLEI_TIMEOUT_MINUTES = 30
+NUCLEI_TIMEOUT_SECONDS = NUCLEI_TIMEOUT_MINUTES * 60
 
 
 @dataclasses.dataclass
@@ -523,10 +525,13 @@ class AgentNuclei(
                 command,
                 capture_output=True,
                 check=True,
+                timeout=NUCLEI_TIMEOUT_SECONDS,
             )
             self._parse_output()
         except subprocess.CalledProcessError as e:
             logger.error("Error running nuclei %s", e)
+        except subprocess.TimeoutExpired as e:
+            logger.error("Error running nuclei timed out %s", e)
 
     def _should_process_target(self, scope_urls_regex: str | None, url: str) -> bool:
         if scope_urls_regex is None:
