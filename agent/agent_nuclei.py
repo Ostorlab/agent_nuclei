@@ -187,6 +187,8 @@ class AgentNuclei(
 
     def _parse_output(self) -> None:
         """Parse Nuclei Json output and emit the findings as vulnerabilities"""
+        if path.exists(OUTPUT_PATH) is False:
+            return
         with open(OUTPUT_PATH, "r", encoding="UTF-8") as f:
             lines = f.readlines()
             for line in lines:
@@ -532,6 +534,7 @@ class AgentNuclei(
             logger.error("Error running nuclei %s", e)
         except subprocess.TimeoutExpired as e:
             logger.error("Error running nuclei timed out %s", e)
+            self._parse_output()
 
     def _should_process_target(self, scope_urls_regex: str | None, url: str) -> bool:
         if scope_urls_regex is None:

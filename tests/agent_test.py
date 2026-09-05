@@ -549,53 +549,67 @@ def testAgentNuclei_whenProcessFailed_agentNotCrash(
 
 
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
-def testAgentNuclei_whenProcessTimesOut_agentNotCrash(
-    requests_mock: rq_mock.mocker.Mocker,
+def testAgentNuclei_whenProcessTimesOut_salvagesExistingOutput(
     scan_message: message.Message,
-    nuclei_agent_args: agent_nuclei.AgentNuclei,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
     mocker: plugin.MockerFixture,
 ) -> None:
-    """Tests running the agent when nuclei times out, ensuring the agent does not crash."""
+    """Tests running the agent when nuclei times out, ensuring output is salvaged and agent does not crash."""
     run_command_mock = mocker.patch(
         "subprocess.run",
         side_effect=subprocess.TimeoutExpired(
             cmd="/nuclei/nuclei",
-            timeout=agent_nuclei.NUCLEI_TIMEOUT_SECONDS,
+            timeout=1800,
         ),
-    )
-    mocker.patch("os.path.exists", return_value=True)
-    requests_mock.get(
-        "https://raw.githubusercontent.com/Ostorlab/main/templates/CVE1.yaml",
-        content=b"test1",
-    )
-    requests_mock.get(
-        "https://raw.githubusercontent.com/Ostorlab/main/templates/CVE2.yaml",
-        content=b"test2",
     )
     mock_report_vulnerability = mocker.patch(
         "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
     )
 
-    nuclei_agent_args.process(scan_message)
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    run_command_mock.assert_called()
+    assert mock_report_vulnerability.call_count == 1
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_empty.json")
+def testAgentNuclei_whenProcessTimesOutAndEmptyOutput_agentNotCrash(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Tests running the agent when nuclei times out with empty output, ensuring agent does not crash."""
+    run_command_mock = mocker.patch(
+        "subprocess.run",
+        side_effect=subprocess.TimeoutExpired(
+            cmd="/nuclei/nuclei",
+            timeout=1800,
+        ),
+    )
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
 
     run_command_mock.assert_called()
     assert mock_report_vulnerability.call_count == 0
 
 
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_empty.json")
 def testAgentNuclei_whenRunCommand_timeoutPassedToSubprocess(
     scan_message: message.Message,
     nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
     mocker: plugin.MockerFixture,
 ) -> None:
-    """Tests that subprocess.run is called with the expected timeout of 30 minutes."""
+    """Tests that subprocess.run is called with the expected timeout of 30 minutes (1800s)."""
     run_command_mock = mocker.patch("subprocess.run", return_value=None)
-    mocker.patch("agent.agent_nuclei.AgentNuclei._parse_output", return_value=None)
 
     nuclei_agent_no_url_scope.process(scan_message)
 
     run_command_mock.assert_called()
     for call in run_command_mock.call_args_list:
-        assert call.kwargs.get("timeout") == agent_nuclei.NUCLEI_TIMEOUT_SECONDS
+        assert call.kwargs.get("timeout") == 1800
 
 
 def testAgentNuclei_whenMessageIsDomainWithUnsupportedSchema_shouldNotScan(
