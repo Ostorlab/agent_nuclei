@@ -683,6 +683,25 @@ def testAgentNuclei_whenHgignoreTemplateMatchesJsonpContent_emitsNoVulnerability
 
 
 @mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_hgignore_real.json"
+)
+def testAgentNuclei_whenHgignoreTemplateMatchesRealIgnoreFile_emitsVulnerability(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Tests that a mercurial-hgignore match on a genuine ignore file is still reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_called_once()
+
+
+@mock.patch(
     "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_low_weak_cipher.json"
 )
 def testAgentNuclei_whenNucleiProcessLink_emitsTechnicalDetailWithLink(

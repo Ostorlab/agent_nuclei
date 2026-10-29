@@ -62,9 +62,11 @@ NUCLEI_TIMEOUT_SECONDS = NUCLEI_TIMEOUT_MINUTES * 60
 # The matcher never inspects the body for actual Mercurial ignore file content,
 # so it also fires on any arbitrary JSONP/JSON served for any path (for example
 # OneTrust's geolocation endpoint), producing false positives. The template has
-# no named matcher, so findings carry no matcher-name; the `(template-id,
+# no named matcher, so its findings carry no matcher-name; the `(template-id,
 # matcher-name)` pair below uses None to match them. Findings matching one of
-# these pairs are not reported.
+# these pairs are suppressed, except that `mercurial-hgignore` findings whose
+# response genuinely resembles a Mercurial ignore file are still reported (see
+# `_is_known_false_positive`).
 KNOWN_FP_MATCHERS = {("mercurial-hgignore", None)}
 
 
@@ -302,7 +304,57 @@ class AgentNuclei(
         """
         template_id = nuclei_data_dict.get("template-id")
         matcher_name = nuclei_data_dict.get("matcher-name")
-        return (template_id, matcher_name) in KNOWN_FP_MATCHERS
+        if (template_id, matcher_name) not in KNOWN_FP_MATCHERS:
+            return False
+        if template_id == "mercurial-hgignore":
+            # The template matches any 200 at a `.hgignore` path. Only skip when
+            # the response does not actually resemble a Mercurial ignore file,
+            # so genuine disclosures are still reported.
+            response = nuclei_data_dict.get("response", "")
+            return not self._looks_like_mercurial_ignore_file(response)
+        return True
+
+    def _looks_like_mercurial_ignore_file(self, response: str) -> bool:
+        """Tell an actual Mercurial ignore file response from arbitrary content.
+
+        A real ``.hgignore`` is a short, line-oriented plain-text file that
+        carries the ``syntax:`` directive and/or ignore-pattern/comment lines.
+        Structured or scripted payloads (JSON/JSONP, HTML, XML, JavaScript) that
+        a catch-all path serves are not Mercurial ignore files.
+
+        Args:
+            response: The raw HTTP response captured by nuclei.
+
+        Returns:
+            True if the response body resembles a Mercurial ignore file.
+        """
+        body = re.split(r"\r?\n\r?\n", response, maxsplit=1)[-1].strip()
+        if body == "":
+            return False
+        lower = body.lower()
+        if (
+            "jsonfeed(" in lower
+            or "<!doctype" in lower
+            or "<html" in lower
+            or "<script" in lower
+            or "<meta" in lower
+            or "<?xml" in lower
+            or body.lstrip().startswith("{")
+            or body.lstrip().startswith("[")
+            or "function(" in lower
+            or "var " in lower
+        ):
+            return False
+        if re.search(r"(?m)^\s*syntax\s*:\s*(regex|glob)\b", body):
+            return True
+        for line in body.splitlines():
+            line = line.strip()
+            if line == "" or line.startswith("syntax"):
+                continue
+            # A comment or a glob/regex ignore-pattern line.
+            if line.startswith("#") or any(ch in line for ch in "*^$"):
+                return True
+        return False
 
     def _get_references(
         self, template_info: dict[str, dict[str, list[str]]]
