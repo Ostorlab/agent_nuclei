@@ -10,7 +10,7 @@ import re
 import subprocess
 import tempfile
 from os import path
-from typing import cast
+from typing import Any, cast
 from urllib import parse
 
 import requests
@@ -55,6 +55,19 @@ IPV4_CIDR_LIMIT = 16
 IPV6_CIDR_LIMIT = 112
 NUCLEI_TIMEOUT_MINUTES = 30
 NUCLEI_TIMEOUT_SECONDS = NUCLEI_TIMEOUT_MINUTES * 60
+
+# The `mercurial-hgignore` template reports a Mercurial ignore file disclosure
+# whenever a `.hgignore` path returns a 200 response with a body longer than 50
+# characters that does not match a small list of excluded content-type markers.
+# The matcher never inspects the body for actual Mercurial ignore file content,
+# so it also fires on any arbitrary JSONP/JSON served for any path (for example
+# OneTrust's geolocation endpoint), producing false positives. The template has
+# no named matcher, so its findings carry no matcher-name; the `(template-id,
+# matcher-name)` pair below uses None to match them. Findings matching one of
+# these pairs are suppressed, except that `mercurial-hgignore` findings whose
+# response genuinely resembles a Mercurial ignore file are still reported (see
+# `_is_known_false_positive`).
+KNOWN_FP_MATCHERS = {("mercurial-hgignore", None)}
 
 
 @dataclasses.dataclass
@@ -197,6 +210,9 @@ class AgentNuclei(
                 except json.decoder.JSONDecodeError as e:
                     logger.warning("Error while trying to decode line: %s: %s", line, e)
                     continue
+                if self._is_known_false_positive(nuclei_data_dict) is True:
+                    logger.debug("Skipping known false positive finding: %s", line)
+                    continue
                 technical_detail = ""
                 matcher_status = nuclei_data_dict.get("matcher-status", False)
                 matcher_name = nuclei_data_dict.get("matcher-name", None)
@@ -276,6 +292,70 @@ class AgentNuclei(
                     risk_rating=NUCLEI_RISK_MAPPING[severity],
                     dna=dna,
                 )
+
+    def _is_known_false_positive(self, nuclei_data_dict: dict[str, Any]) -> bool:
+        """Check whether a nuclei finding is a known false positive to skip.
+
+        Args:
+            nuclei_data_dict: The parsed nuclei finding entry.
+
+        Returns:
+            True if the finding should not be reported, False otherwise.
+        """
+        template_id = nuclei_data_dict.get("template-id")
+        matcher_name = nuclei_data_dict.get("matcher-name")
+        if (template_id, matcher_name) not in KNOWN_FP_MATCHERS:
+            return False
+        if template_id == "mercurial-hgignore":
+            # The template matches any 200 at a `.hgignore` path. Only skip when
+            # the response does not actually resemble a Mercurial ignore file,
+            # so genuine disclosures are still reported.
+            response = nuclei_data_dict.get("response", "")
+            return not self._looks_like_mercurial_ignore_file(response)
+        return True
+
+    def _looks_like_mercurial_ignore_file(self, response: str) -> bool:
+        """Tell an actual Mercurial ignore file response from arbitrary content.
+
+        A real ``.hgignore`` is a short, line-oriented plain-text file that
+        carries the ``syntax:`` directive (``glob`` or ``regexp``) and/or
+        ignore-pattern/comment lines. Structured or scripted payloads
+        (JSON/JSONP, HTML, XML, JavaScript) that a catch-all path serves are not
+        Mercurial ignore files.
+
+        Args:
+            response: The raw HTTP response captured by nuclei.
+
+        Returns:
+            True if the response body resembles a Mercurial ignore file.
+        """
+        body = re.split(r"\r?\n\r?\n", response, maxsplit=1)[-1].strip()
+        if body == "":
+            return False
+        lower = body.lower()
+        if (
+            "jsonfeed(" in lower
+            or "<!doctype" in lower
+            or "<html" in lower
+            or "<script" in lower
+            or "<meta" in lower
+            or "<?xml" in lower
+            or body.lstrip().startswith("{")
+            or body.lstrip().startswith("[")
+            or "function(" in lower
+            or "var " in lower
+        ):
+            return False
+        if re.search(r"(?m)^\s*syntax\s*:\s*(regexp?|glob)\b", body):
+            return True
+        for line in body.splitlines():
+            line = line.strip()
+            if line == "" or line.startswith("syntax"):
+                continue
+            # A comment or a glob/regex ignore-pattern line.
+            if line.startswith("#") or any(ch in line for ch in "*^$"):
+                return True
+        return False
 
     def _get_references(
         self, template_info: dict[str, dict[str, list[str]]]
