@@ -1081,3 +1081,45 @@ def testNucleiAgent_whenDifferentApiSchemaEndpoints_shouldScanBoth(
     nuclei_agent_no_url_scope.process(scan_message_api_schema_http)
 
     assert prepare_targets_mock.call_count == 2
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH",
+    "./tests/result_nuclei_csp_script_src_subdomain_fp.json",
+)
+def testAgentNuclei_whenCspScriptSrcHasOnlySubdomainWildcard_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Test that a subdomain-scoped script-src wildcard (e.g. *.arkoselabs.com)
+    is not reported as an any-origin script-src wildcard false positive."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH",
+    "./tests/result_nuclei_csp_script_src_any_origin.json",
+)
+def testAgentNuclei_whenCspScriptSrcHasAnyOriginWildcard_shouldReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Test that a true any-origin script-src wildcard (e.g. https://*) is still
+    reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_called_once()

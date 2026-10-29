@@ -56,6 +56,70 @@ IPV6_CIDR_LIMIT = 112
 NUCLEI_TIMEOUT_MINUTES = 30
 NUCLEI_TIMEOUT_SECONDS = NUCLEI_TIMEOUT_MINUTES * 60
 
+CSP_SCRIPT_SRC_WILDCARD_TEMPLATE_ID = "csp-script-src-wildcard"
+
+
+def _source_host(source: str) -> str:
+    """Return the host portion of a CSP source expression.
+
+    Strips an optional scheme (``http://``, ``https://``, ``*://`` ...) and an
+    optional explicit port, leaving the host. A bare any-origin wildcard
+    resolves to ``"*"`` while a subdomain-scoped one (``*.example.com``) or a
+    host-scoped one (``example.com`` / ``127.0.0.1``) does not.
+    """
+    host = source
+    if "://" in host:
+        host = host.split("://", 1)[1]
+    if ":" in host and not host.startswith("["):
+        host = host.rsplit(":", 1)[0]
+    return host
+
+
+def _extract_script_src_directive(response: str) -> str | None:
+    """Return the value of the ``script-src`` directive of a raw HTTP response.
+
+    The CSP header may hold several directives separated by ``;``; only the
+    ``script-src`` one is returned. Returns ``None`` when no CSP header or no
+    ``script-src`` directive is present.
+    """
+    for line in response.splitlines():
+        if not line.lower().startswith("content-security-policy:"):
+            continue
+        header_value = line.split(":", 1)[1]
+        for directive in header_value.split(";"):
+            parts = directive.strip().split(None, 1)
+            if len(parts) == 0:
+                continue
+            if parts[0].lower() == "script-src":
+                return parts[1] if len(parts) > 1 else ""
+    return None
+
+
+def _is_csp_script_src_subdomain_wildcard_fp(
+    nuclei_data_dict: dict[str, object],
+) -> bool:
+    """Return True when the finding is a csp-script-src-wildcard false positive.
+
+    The upstream template regex matches any ``*`` inside the directive,
+    including host-scoped wildcards such as ``*.example.com`` or ``host:*``,
+    which do not let scripts load from any origin. Only report the finding
+    when the directive also contains a bare any-origin wildcard source (e.g.
+    ``*`` or ``https://*``); otherwise it is a false positive and should be
+    suppressed.
+    """
+    if nuclei_data_dict.get("template-id") != CSP_SCRIPT_SRC_WILDCARD_TEMPLATE_ID:
+        return False
+    response = nuclei_data_dict.get("response")
+    if not isinstance(response, str):
+        return False
+    script_src = _extract_script_src_directive(response)
+    if script_src is None:
+        return False
+    for source in script_src.split():
+        if _source_host(source) == "*":
+            return False
+    return True
+
 
 @dataclasses.dataclass
 class Target:
@@ -196,6 +260,8 @@ class AgentNuclei(
                     nuclei_data_dict = json.loads(line)
                 except json.decoder.JSONDecodeError as e:
                     logger.warning("Error while trying to decode line: %s: %s", line, e)
+                    continue
+                if _is_csp_script_src_subdomain_wildcard_fp(nuclei_data_dict):
                     continue
                 technical_detail = ""
                 matcher_status = nuclei_data_dict.get("matcher-status", False)
