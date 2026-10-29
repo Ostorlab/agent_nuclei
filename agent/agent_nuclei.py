@@ -318,9 +318,10 @@ class AgentNuclei(
         """Tell an actual Mercurial ignore file response from arbitrary content.
 
         A real ``.hgignore`` is a short, line-oriented plain-text file that
-        carries the ``syntax:`` directive and/or ignore-pattern/comment lines.
-        Structured or scripted payloads (JSON/JSONP, HTML, XML, JavaScript) that
-        a catch-all path serves are not Mercurial ignore files.
+        carries the ``syntax:`` directive (``glob`` or ``regexp``) and/or
+        ignore-pattern/comment lines. Structured or scripted payloads
+        (JSON/JSONP, HTML, XML, JavaScript) that a catch-all path serves are not
+        Mercurial ignore files.
 
         Args:
             response: The raw HTTP response captured by nuclei.
@@ -345,7 +346,7 @@ class AgentNuclei(
             or "var " in lower
         ):
             return False
-        if re.search(r"(?m)^\s*syntax\s*:\s*(regex|glob)\b", body):
+        if re.search(r"(?m)^\s*syntax\s*:\s*(regexp?|glob)\b", body):
             return True
         for line in body.splitlines():
             line = line.strip()
