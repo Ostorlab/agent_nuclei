@@ -10,7 +10,7 @@ import re
 import subprocess
 import tempfile
 from os import path
-from typing import cast
+from typing import Any, cast
 from urllib import parse
 
 import requests
@@ -55,6 +55,17 @@ IPV4_CIDR_LIMIT = 16
 IPV6_CIDR_LIMIT = 112
 NUCLEI_TIMEOUT_MINUTES = 30
 NUCLEI_TIMEOUT_SECONDS = NUCLEI_TIMEOUT_MINUTES * 60
+
+# The `mercurial-hgignore` template reports a Mercurial ignore file disclosure
+# whenever a `.hgignore` path returns a 200 response with a body longer than 50
+# characters that does not match a small list of excluded content-type markers.
+# The matcher never inspects the body for actual Mercurial ignore file content,
+# so it also fires on any arbitrary JSONP/JSON served for any path (for example
+# OneTrust's geolocation endpoint), producing false positives. The template has
+# no named matcher, so findings carry no matcher-name; the `(template-id,
+# matcher-name)` pair below uses None to match them. Findings matching one of
+# these pairs are not reported.
+KNOWN_FP_MATCHERS = {("mercurial-hgignore", None)}
 
 
 @dataclasses.dataclass
@@ -197,6 +208,9 @@ class AgentNuclei(
                 except json.decoder.JSONDecodeError as e:
                     logger.warning("Error while trying to decode line: %s: %s", line, e)
                     continue
+                if self._is_known_false_positive(nuclei_data_dict) is True:
+                    logger.debug("Skipping known false positive finding: %s", line)
+                    continue
                 technical_detail = ""
                 matcher_status = nuclei_data_dict.get("matcher-status", False)
                 matcher_name = nuclei_data_dict.get("matcher-name", None)
@@ -276,6 +290,19 @@ class AgentNuclei(
                     risk_rating=NUCLEI_RISK_MAPPING[severity],
                     dna=dna,
                 )
+
+    def _is_known_false_positive(self, nuclei_data_dict: dict[str, Any]) -> bool:
+        """Check whether a nuclei finding is a known false positive to skip.
+
+        Args:
+            nuclei_data_dict: The parsed nuclei finding entry.
+
+        Returns:
+            True if the finding should not be reported, False otherwise.
+        """
+        template_id = nuclei_data_dict.get("template-id")
+        matcher_name = nuclei_data_dict.get("matcher-name")
+        return (template_id, matcher_name) in KNOWN_FP_MATCHERS
 
     def _get_references(
         self, template_info: dict[str, dict[str, list[str]]]
