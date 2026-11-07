@@ -828,6 +828,37 @@ def testAgentNuclei_withTemplateIds_RunScan(
 
 
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
+def testAgentNuclei_runsNucleiWithCodeEnginePythonPath(
+    scan_message: message.Message,
+    nuclei_agent_args: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+    requests_mock: rq_mock.mocker.Mocker,
+) -> None:
+    """Tests that the code engine Python directory is prepended to the Nuclei PATH."""
+    run_command_mock = mocker.patch("subprocess.run", return_value=None)
+    mocker.patch("os.path.exists", return_value=True)
+    requests_mock.get(
+        "https://raw.githubusercontent.com/Ostorlab/main/templates/CVE1.yaml",
+        content=b"test1",
+    )
+    requests_mock.get(
+        "https://raw.githubusercontent.com/Ostorlab/main/templates/CVE2.yaml",
+        content=b"test2",
+    )
+    mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_args.process(scan_message)
+
+    run_command_mock.assert_called()
+    for run_command_call in run_command_mock.call_args_list:
+        env = run_command_call.kwargs.get("env")
+        assert env is not None
+        assert env["PATH"].startswith(f"{agent_nuclei.CODE_ENGINE_PATH}:")
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
 def testAgentNuclei_withCustomTemplates_RunScan(
     scan_message: message.Message,
     nuclei_agent_with_custom_templates: agent_nuclei.AgentNuclei,

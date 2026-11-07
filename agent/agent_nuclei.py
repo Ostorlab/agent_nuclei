@@ -5,6 +5,7 @@ import dataclasses
 import ipaddress
 import json
 import logging
+import os
 import pathlib
 import re
 import subprocess
@@ -37,6 +38,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 OUTPUT_PATH = "/tmp/result_nuclei.json"
+
+# Nuclei code templates execute with the `python3` found on PATH; the image
+# provides one that points at the interpreter carrying the agent dependencies.
+CODE_ENGINE_PATH = "/opt/nuclei-code-engine"
 
 SCHEME_TO_PORT = {"http": 80, "https": 443}
 
@@ -522,12 +527,15 @@ class AgentNuclei(
                     self._run_nuclei_command([*command, "-H", basic_credential.header])
 
     def _run_nuclei_command(self, command: list[str]) -> None:
+        env = os.environ.copy()
+        env["PATH"] = f"{CODE_ENGINE_PATH}:{env.get('PATH', '')}"
         try:
             subprocess.run(
                 command,
                 capture_output=True,
                 check=True,
                 timeout=NUCLEI_TIMEOUT_SECONDS,
+                env=env,
             )
             self._parse_output()
         except subprocess.CalledProcessError as e:

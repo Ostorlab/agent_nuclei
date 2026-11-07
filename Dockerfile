@@ -18,6 +18,12 @@ COPY requirement.txt /requirement.txt
 RUN python3.14 -m pip install uv
 RUN python3.14 -m uv pip install --upgrade setuptools
 RUN python3.14 -m uv pip install -r /requirement.txt
+
+# Nuclei code templates resolve `python3` from PATH; point them at the
+# interpreter that carries the agent's Python dependencies.
+RUN mkdir -p /opt/nuclei-code-engine && \
+    ln -sf /usr/bin/python3.14 /opt/nuclei-code-engine/python3
+
 RUN mkdir /nuclei
 WORKDIR /nuclei
 ARG NUCLEI_VERSION=3.6.2

@@ -1,3 +1,5 @@
 ostorlab[agent]
 rich
 tld
+# Runtime dependency for Nuclei code templates (executed through python3).
+paramiko
