@@ -117,3 +117,7 @@ args:
   - name: "proxy"
     type: "string"
     description: "Proxy to use for the scan with nuclei."
+  - name: "use_code_templates"
+    type: "boolean"
+    description: "Enable Nuclei code protocol templates. Only templates signed by a trusted key are executed."
+    value: false

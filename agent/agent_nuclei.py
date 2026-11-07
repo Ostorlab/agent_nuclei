@@ -137,6 +137,7 @@ class AgentNuclei(
         self._proxy: str | None = self.args.get("proxy")
         self._template_ids: list[str] | None = self.args.get("template_ids")
         self._template_urls: list[str] | None = self.args.get("template_urls")
+        self._use_code_templates: bool = self.args.get("use_code_templates", False)
 
     def start(self) -> None:
         """Enable VPN configuration at the beginning if needed."""
@@ -501,6 +502,8 @@ class AgentNuclei(
         ]
         for chunk in chunks:
             command = ["/nuclei/nuclei"]
+            if self._use_code_templates is True:
+                command.append("-code")
             if self._proxy is not None:
                 command.extend(["-proxy", self._proxy])
             for item in chunk:

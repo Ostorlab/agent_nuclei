@@ -828,6 +828,63 @@ def testAgentNuclei_withTemplateIds_RunScan(
 
 
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
+def testAgentNuclei_withCodeTemplates_RunScan(
+    scan_message: message.Message,
+    nuclei_agent_with_code_templates: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+    requests_mock: rq_mock.mocker.Mocker,
+) -> None:
+    """Tests that the -code flag is passed to Nuclei when code templates are enabled."""
+    run_command_mock = mocker.patch("subprocess.run", return_value=None)
+    mocker.patch("os.path.exists", return_value=True)
+    requests_mock.get(
+        "https://raw.githubusercontent.com/Ostorlab/main/templates/CVE1.yaml",
+        content=b"test1",
+    )
+    mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_with_code_templates.process(scan_message)
+
+    run_command_args = run_command_mock.call_args_list
+    custom_templates_command = " ".join(run_command_args[0].args[0])
+    assert "/nuclei/nuclei" in custom_templates_command
+    assert "-code" in custom_templates_command
+    assert "CVE1.yaml" in custom_templates_command
+    default_templates_command = " ".join(run_command_args[1].args[0])
+    assert "-code" in default_templates_command
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
+def testAgentNuclei_withoutCodeTemplates_NoCodeFlag(
+    scan_message: message.Message,
+    nuclei_agent_args: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+    requests_mock: rq_mock.mocker.Mocker,
+) -> None:
+    """Tests that the -code flag is not passed to Nuclei by default."""
+    run_command_mock = mocker.patch("subprocess.run", return_value=None)
+    mocker.patch("os.path.exists", return_value=True)
+    requests_mock.get(
+        "https://raw.githubusercontent.com/Ostorlab/main/templates/CVE1.yaml",
+        content=b"test1",
+    )
+    requests_mock.get(
+        "https://raw.githubusercontent.com/Ostorlab/main/templates/CVE2.yaml",
+        content=b"test2",
+    )
+    mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_args.process(scan_message)
+
+    for run_command_call in run_command_mock.call_args_list:
+        assert "-code" not in " ".join(run_command_call.args[0])
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
 def testAgentNuclei_withCustomTemplates_RunScan(
     scan_message: message.Message,
     nuclei_agent_with_custom_templates: agent_nuclei.AgentNuclei,
