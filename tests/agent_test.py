@@ -948,6 +948,27 @@ def testAgentNuclei_whenResultIsInvalidJson_agentShouldHandleExceptionAndDoNotRa
     assert len(agent_mock) == 0
 
 
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_form_detection_fp.json"
+)
+def testAgentNuclei_whenFormDetectionMatchesGenericPage_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """The upstream `form-detection` template reports any page whose body contains an HTML form,
+    including third-party pages reached through redirects, so the finding is a known false
+    positive and must not be reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
+
+
 def testPrepareTargets_whenMessageIsDomainName_shouldReturnDomainName(
     scan_message_ipv4_with_port: message.Message,
     nuclei_agent: agent_nuclei.AgentNuclei,

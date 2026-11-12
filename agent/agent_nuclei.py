@@ -10,7 +10,7 @@ import re
 import subprocess
 import tempfile
 from os import path
-from typing import cast
+from typing import Any, cast
 from urllib import parse
 
 import requests
@@ -55,6 +55,27 @@ IPV4_CIDR_LIMIT = 16
 IPV6_CIDR_LIMIT = 112
 NUCLEI_TIMEOUT_MINUTES = 30
 NUCLEI_TIMEOUT_SECONDS = NUCLEI_TIMEOUT_MINUTES * 60
+
+# Known false-positive (template-id, matcher-name) pairs. Some upstream nuclei templates match
+# generic page content on any host (e.g. any HTML form, or a common server banner), including
+# third-party pages the scan reaches through redirects. Such a match is not a signal about the
+# scanned asset, so the finding is suppressed agent-side. matcher-name is None for templates
+# whose matcher is unnamed (nuclei omits it from the JSON output in silent mode).
+KNOWN_FP_MATCHERS: set[tuple[str, str | None]] = {("form-detection", None)}
+
+
+def _is_known_false_positive(nuclei_data_dict: dict[str, Any]) -> bool:
+    """Tell whether a nuclei result matches a known false-positive template.
+
+    Args:
+        nuclei_data_dict: A single parsed nuclei JSON event.
+
+    Returns:
+        True when the (template-id, matcher-name) pair is a known false positive.
+    """
+    template_id = nuclei_data_dict.get("template-id")
+    matcher_name = nuclei_data_dict.get("matcher-name")
+    return (template_id, matcher_name) in KNOWN_FP_MATCHERS
 
 
 @dataclasses.dataclass
@@ -196,6 +217,12 @@ class AgentNuclei(
                     nuclei_data_dict = json.loads(line)
                 except json.decoder.JSONDecodeError as e:
                     logger.warning("Error while trying to decode line: %s: %s", line, e)
+                    continue
+                if _is_known_false_positive(nuclei_data_dict) is True:
+                    logger.info(
+                        "Skipping known false positive template `%s`.",
+                        nuclei_data_dict.get("template-id"),
+                    )
                     continue
                 technical_detail = ""
                 matcher_status = nuclei_data_dict.get("matcher-status", False)
