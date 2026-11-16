@@ -827,6 +827,26 @@ def testAgentNuclei_withTemplateIds_RunScan(
     assert "-id" not in command_default
 
 
+def testAgentNuclei_whenExcludedTemplateIdsProvided_excludesFromDefaultRun(
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Excluded CVEs are passed to Nuclei even for its default catalog."""
+    run_command = mocker.patch("subprocess.run", return_value=None)
+    mocker.patch("agent.agent_nuclei.AgentNuclei._parse_output", return_value=None)
+    for argument in nuclei_agent_no_url_scope.definition.args:
+        if argument["name"] == "exclude_template_ids":
+            argument["value"] = ["CVE-2026-44262", "CVE-2026-76904"]
+
+    nuclei_agent_no_url_scope._run_command(
+        ["https://example.test"], run_default_templates=True
+    )
+
+    command = run_command.call_args.args[0]
+    assert "-eid" in command
+    assert command[command.index("-eid") + 1] == "CVE-2026-44262,CVE-2026-76904"
+
+
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
 def testAgentNuclei_withCustomTemplates_RunScan(
     scan_message: message.Message,

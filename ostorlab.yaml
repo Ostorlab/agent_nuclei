@@ -117,3 +117,6 @@ args:
   - name: "proxy"
     type: "string"
     description: "Proxy to use for the scan with nuclei."
+  - name: "exclude_template_ids"
+    type: "array"
+    description: "List of Nuclei template IDs to exclude from custom and default scans."

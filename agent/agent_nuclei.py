@@ -533,6 +533,16 @@ class AgentNuclei(
             for item in chunk:
                 command.extend(["-u", item])
             command.extend(["-j", "-irr", "-silent", "-o", OUTPUT_PATH])
+            excluded_template_ids = self.args.get("exclude_template_ids")
+            if (
+                isinstance(excluded_template_ids, list)
+                and len(excluded_template_ids) > 0
+                and all(
+                    isinstance(template_id, str) is True
+                    for template_id in excluded_template_ids
+                )
+            ):
+                command.extend(["-eid", ",".join(excluded_template_ids)])
             if run_default_templates is False:
                 if templates is not None:
                     for template in templates:
