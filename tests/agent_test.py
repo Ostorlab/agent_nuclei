@@ -969,6 +969,48 @@ def testAgentNuclei_whenFormDetectionMatchesGenericPage_shouldNotReport(
     mock_report_vulnerability.assert_not_called()
 
 
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_options_method_405_fp.json"
+)
+def testAgentNuclei_whenOptionsMethodMatches405Response_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """The upstream `options-method` template reports whenever the response carries an `Allow`
+    header, including 405 Method Not Allowed responses (which RFC 7231 requires to carry an
+    `Allow` header listing the supported methods). A 405 proves OPTIONS was rejected, so the
+    finding is a false positive and must not be reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_options_method_200.json"
+)
+def testAgentNuclei_whenOptionsMethodSucceeds_shouldReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """A successful (200) response to the OPTIONS request with an `Allow` header genuinely
+    confirms OPTIONS is accepted, so the `options-method` finding must still be reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_called_once()
+
+
 def testPrepareTargets_whenMessageIsDomainName_shouldReturnDomainName(
     scan_message_ipv4_with_port: message.Message,
     nuclei_agent: agent_nuclei.AgentNuclei,

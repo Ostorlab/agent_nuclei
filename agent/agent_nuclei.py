@@ -63,6 +63,13 @@ NUCLEI_TIMEOUT_SECONDS = NUCLEI_TIMEOUT_MINUTES * 60
 # whose matcher is unnamed (nuclei omits it from the JSON output in silent mode).
 KNOWN_FP_MATCHERS: set[tuple[str, str | None]] = {("form-detection", None)}
 
+# Upstream templates whose findings are only valid for successful HTTP responses. The
+# `options-method` template reports any response carrying an `Allow` header, and a 405 Method
+# Not Allowed response is required by RFC 7231 to carry one — so the template fires on
+# endpoints that explicitly reject OPTIONS. Error statuses prove the method was not accepted,
+# so those matches are suppressed agent-side.
+OPTIONS_METHOD_TEMPLATE_ID = "options-method"
+
 
 def _is_known_false_positive(nuclei_data_dict: dict[str, Any]) -> bool:
     """Tell whether a nuclei result matches a known false-positive template.
@@ -76,6 +83,30 @@ def _is_known_false_positive(nuclei_data_dict: dict[str, Any]) -> bool:
     template_id = nuclei_data_dict.get("template-id")
     matcher_name = nuclei_data_dict.get("matcher-name")
     return (template_id, matcher_name) in KNOWN_FP_MATCHERS
+
+
+def _is_options_method_error_response(nuclei_data_dict: dict[str, Any]) -> bool:
+    """Tell whether an `options-method` result matched an error response.
+
+    The template has no matcher: it reports whenever the response carries an `Allow`
+    header, whatever the status. Only a successful response confirms OPTIONS is accepted,
+    so a match on an error status (>= 400) is a false positive.
+
+    Args:
+        nuclei_data_dict: A single parsed nuclei JSON event.
+
+    Returns:
+        True when the template is `options-method` and the response status is an error.
+    """
+    if nuclei_data_dict.get("template-id") != OPTIONS_METHOD_TEMPLATE_ID:
+        return False
+    response = nuclei_data_dict.get("response")
+    if not isinstance(response, str):
+        return False
+    status_match = re.match(r"HTTP/\d(?:\.\d+)?\s+(\d{3})", response)
+    if status_match is None:
+        return False
+    return int(status_match.group(1)) >= 400
 
 
 @dataclasses.dataclass
@@ -222,6 +253,12 @@ class AgentNuclei(
                     logger.info(
                         "Skipping known false positive template `%s`.",
                         nuclei_data_dict.get("template-id"),
+                    )
+                    continue
+                if _is_options_method_error_response(nuclei_data_dict) is True:
+                    logger.info(
+                        "Skipping `options-method` match on an error response for `%s`.",
+                        nuclei_data_dict.get("matched-at"),
                     )
                     continue
                 technical_detail = ""
