@@ -969,6 +969,46 @@ def testAgentNuclei_whenFormDetectionMatchesGenericPage_shouldNotReport(
     mock_report_vulnerability.assert_not_called()
 
 
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_jwk_public_fp.json"
+)
+def testAgentNuclei_whenJwkJsonLeakMatchesPublicJwks_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """The upstream `jwk-json-leak` template reports any `/.well-known/jwks.json` response that
+    contains `"kty":`, including the standard OIDC discovery endpoint that publishes
+    intended-public signing keys. A key set without private key material is a known false
+    positive and must not be reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_jwk_private.json")
+def testAgentNuclei_whenJwkJsonLeakMatchesPrivateJwk_shouldReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """A `jwk-json-leak` match whose response carries private key material (`d`, `p`, `q`, ...)
+    is a genuine secret exposure and must still be reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_called_once()
+
+
 def testPrepareTargets_whenMessageIsDomainName_shouldReturnDomainName(
     scan_message_ipv4_with_port: message.Message,
     nuclei_agent: agent_nuclei.AgentNuclei,

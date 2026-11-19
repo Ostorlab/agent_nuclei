@@ -63,6 +63,12 @@ NUCLEI_TIMEOUT_SECONDS = NUCLEI_TIMEOUT_MINUTES * 60
 # whose matcher is unnamed (nuclei omits it from the JSON output in silent mode).
 KNOWN_FP_MATCHERS: set[tuple[str, str | None]] = {("form-detection", None)}
 
+# Private JSON Web Key members (RFC 7517 / RFC 7518): a key set exposing any of them carries
+# secret key material. The `jwk-json-leak` template only matches the presence of `"kty":`, so a
+# key set holding none of these members is a standard OIDC discovery endpoint publishing its
+# intended-public signing keys and is not a leak.
+JWK_PRIVATE_MEMBERS = ("d", "p", "q", "dp", "dq", "qi", "oth", "k")
+
 
 def _is_known_false_positive(nuclei_data_dict: dict[str, Any]) -> bool:
     """Tell whether a nuclei result matches a known false-positive template.
@@ -76,6 +82,48 @@ def _is_known_false_positive(nuclei_data_dict: dict[str, Any]) -> bool:
     template_id = nuclei_data_dict.get("template-id")
     matcher_name = nuclei_data_dict.get("matcher-name")
     return (template_id, matcher_name) in KNOWN_FP_MATCHERS
+
+
+def _is_jwk_public_key_exposure_fp(nuclei_data_dict: dict[str, Any]) -> bool:
+    """Tell whether a `jwk-json-leak` result only exposes intended-public signing keys.
+
+    The upstream `jwk-json-leak` template reports any JWKS response whose body contains
+    `"kty":`, including the standard OIDC discovery endpoint (`/.well-known/jwks.json`) that
+    publishes public RSA/EC/OKP signing keys by design. The exposure is only a real finding when
+    the key set holds private key material; a key set without any private member is suppressed.
+
+    Args:
+        nuclei_data_dict: A single parsed nuclei JSON event.
+
+    Returns:
+        True when the result matches `jwk-json-leak` and the response carries only public keys.
+    """
+    template_id = nuclei_data_dict.get("template-id")
+    matcher_name = nuclei_data_dict.get("matcher-name")
+    if (template_id, matcher_name) != ("jwk-json-leak", None):
+        return False
+    response = nuclei_data_dict.get("response")
+    if not isinstance(response, str):
+        return False
+    body = response.split("\r\n\r\n", 1)[-1]
+    try:
+        jwks = json.loads(body)
+    except json.decoder.JSONDecodeError:
+        return False
+    if not isinstance(jwks, dict):
+        return False
+    keys = jwks.get("keys")
+    if isinstance(keys, list):
+        return all(
+            not isinstance(key, dict) or _jwk_has_private_member(key) is False
+            for key in keys
+        )
+    return _jwk_has_private_member(jwks) is False
+
+
+def _jwk_has_private_member(jwk: dict[str, Any]) -> bool:
+    """Tell whether a single JWK holds secret key material (any private member)."""
+    return any(member in jwk for member in JWK_PRIVATE_MEMBERS)
 
 
 @dataclasses.dataclass
@@ -218,7 +266,10 @@ class AgentNuclei(
                 except json.decoder.JSONDecodeError as e:
                     logger.warning("Error while trying to decode line: %s: %s", line, e)
                     continue
-                if _is_known_false_positive(nuclei_data_dict) is True:
+                if (
+                    _is_known_false_positive(nuclei_data_dict) is True
+                    or _is_jwk_public_key_exposure_fp(nuclei_data_dict) is True
+                ):
                     logger.info(
                         "Skipping known false positive template `%s`.",
                         nuclei_data_dict.get("template-id"),
