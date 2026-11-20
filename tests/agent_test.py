@@ -969,6 +969,27 @@ def testAgentNuclei_whenFormDetectionMatchesGenericPage_shouldNotReport(
     mock_report_vulnerability.assert_not_called()
 
 
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_node2shell_brotli_fp.json"
+)
+def testAgentNuclei_whenNode2ShellBrotliTemplateMatches_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """The upstream `CVE-2026-111497` template infers a Brotli decoder from response differences
+    between control requests, which a host that never reads the request body also produces, so
+    the finding is a known false positive and must not be reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    assert mock_report_vulnerability.called is False
+
+
 def testPrepareTargets_whenMessageIsDomainName_shouldReturnDomainName(
     scan_message_ipv4_with_port: message.Message,
     nuclei_agent: agent_nuclei.AgentNuclei,
