@@ -53,6 +53,9 @@ STORAGE_NAME = "agent_nuclei"
 MAX_TARGETS_COMMAND_LINE = 10
 IPV4_CIDR_LIMIT = 16
 IPV6_CIDR_LIMIT = 112
+DEFAULT_MAX_HOST_ERROR = 10
+DEFAULT_REQUEST_TIMEOUT_SECONDS = 7
+DEFAULT_REQUEST_RETRIES = 1
 NUCLEI_TIMEOUT_MINUTES = 30
 NUCLEI_TIMEOUT_SECONDS = NUCLEI_TIMEOUT_MINUTES * 60
 
@@ -158,6 +161,16 @@ class AgentNuclei(
         self._proxy: str | None = self.args.get("proxy")
         self._template_ids: list[str] | None = self.args.get("template_ids")
         self._template_urls: list[str] | None = self.args.get("template_urls")
+        self._max_host_error = int(
+            self.args.get("max_host_error", DEFAULT_MAX_HOST_ERROR)
+        )
+        self._request_timeout = int(
+            self.args.get("timeout", DEFAULT_REQUEST_TIMEOUT_SECONDS)
+        )
+        self._request_retries = int(self.args.get("retries", DEFAULT_REQUEST_RETRIES))
+        self._skip_unreachable_targets: bool = (
+            self.args.get("skip_unreachable_targets", True) is True
+        )
 
     def start(self) -> None:
         """Enable VPN configuration at the beginning if needed."""
@@ -188,6 +201,15 @@ class AgentNuclei(
             for t in targets
             if self._should_process_target(self._scope_urls_regex, t) is True
         ]
+
+        # Targets that don't answer burn the request budget on errors and retries, skip them upfront. The probe is
+        # not made through a proxy, so it is only meaningful when nuclei is reaching the targets directly.
+        if self._skip_unreachable_targets is True and self._proxy is None:
+            reachable_targets = helpers.filter_reachable_targets(targets)
+            skipped_targets = [t for t in targets if t not in reachable_targets]
+            if len(skipped_targets) > 0:
+                logger.warning("Skipping unreachable targets `%s`.", skipped_targets)
+            targets = reachable_targets
 
         logger.info("Scanning targets `%s`.", targets)
 
@@ -533,6 +555,16 @@ class AgentNuclei(
             for item in chunk:
                 command.extend(["-u", item])
             command.extend(["-j", "-irr", "-silent", "-o", OUTPUT_PATH])
+            command.extend(
+                [
+                    "-max-host-error",
+                    str(self._max_host_error),
+                    "-timeout",
+                    str(self._request_timeout),
+                    "-retries",
+                    str(self._request_retries),
+                ]
+            )
             if run_default_templates is False:
                 if templates is not None:
                     for template in templates:

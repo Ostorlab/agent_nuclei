@@ -3,9 +3,15 @@
 from typing import Any
 
 import pytest
+import requests
+import requests_mock as rq_mock
 from ostorlab.assets import domain_name, ipv4, ipv6
+from pytest_mock import plugin
 
 from agent import helpers
+
+# The conftest replaces `helpers.is_target_reachable` for every test, keep the real function for its own tests.
+ORIGINAL_IS_TARGET_REACHABLE = helpers.is_target_reachable
 
 
 def testBuildVulnLocation_whenMatchedAtIsIpv4_returnsVulnLocation() -> None:
@@ -220,3 +226,61 @@ def testSortDict_always_returnsSortedDict(
 ) -> None:
     """Ensure sort_dict correctly sorts dictionary keys recursively."""
     assert helpers.sort_dict(unordered_dict) == expected
+
+
+def testIsTargetReachable_whenServerAnswers_returnsTrue(
+    requests_mock: rq_mock.mocker.Mocker,
+) -> None:
+    requests_mock.get("https://example.com", status_code=404)
+
+    assert ORIGINAL_IS_TARGET_REACHABLE("https://example.com") is True
+
+
+def testIsTargetReachable_whenTlsHandshakeFails_returnsFalse(
+    requests_mock: rq_mock.mocker.Mocker,
+) -> None:
+    requests_mock.get("https://example.com", exc=requests.exceptions.SSLError)
+
+    assert ORIGINAL_IS_TARGET_REACHABLE("https://example.com") is False
+
+
+def testIsTargetReachable_whenConnectionFails_returnsFalse(
+    requests_mock: rq_mock.mocker.Mocker,
+) -> None:
+    requests_mock.get("https://example.com", exc=requests.exceptions.ConnectTimeout)
+
+    assert ORIGINAL_IS_TARGET_REACHABLE("https://example.com") is False
+
+
+def testIsTargetReachable_whenReadTimesOut_returnsTrue(
+    requests_mock: rq_mock.mocker.Mocker,
+) -> None:
+    requests_mock.get("https://example.com", exc=requests.exceptions.ReadTimeout)
+
+    assert ORIGINAL_IS_TARGET_REACHABLE("https://example.com") is True
+
+
+def testFilterReachableTargets_whenSomeTargetsUnreachable_dropsOnlyThoseTargets(
+    mocker: plugin.MockerFixture,
+) -> None:
+    mocker.patch(
+        "agent.helpers.is_target_reachable",
+        side_effect=lambda url, timeout: "dead" not in url,
+    )
+
+    targets = helpers.filter_reachable_targets(
+        ["https://live.example.com", "https://dead.example.com", "10.0.0.1:443"]
+    )
+
+    assert targets == ["https://live.example.com", "10.0.0.1:443"]
+
+
+def testFilterReachableTargets_whenNoHttpTarget_probesNothing(
+    mocker: plugin.MockerFixture,
+) -> None:
+    probe_mock = mocker.patch("agent.helpers.is_target_reachable")
+
+    targets = helpers.filter_reachable_targets(["10.0.0.1:443", "10.0.0.2:443"])
+
+    assert targets == ["10.0.0.1:443", "10.0.0.2:443"]
+    probe_mock.assert_not_called()

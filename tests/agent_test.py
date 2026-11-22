@@ -83,6 +83,12 @@ def testAgentNuclei_whenUrlTemplatesGiven_RunScan(
         "-silent",
         "-o",
         "./tests/result_nuclei.json",
+        "-max-host-error",
+        "10",
+        "-timeout",
+        "7",
+        "-retries",
+        "1",
     ]
     command = " ".join(run_command_args[0].args[0])
     assert "/nuclei/nuclei" in command
@@ -179,6 +185,12 @@ def testAgentNuclei_whenTemplatesProvided_scansAppWithTemplate(
             "-silent",
             "-o",
             "./tests/result_nuclei.json",
+            "-max-host-error",
+            "10",
+            "-timeout",
+            "7",
+            "-retries",
+            "1",
         ],
     )
 
@@ -822,7 +834,7 @@ def testAgentNuclei_withTemplateIds_RunScan(
     assert "-id" in command
     assert "cve-2021-1234" in command
     assert "cve-2021-5678" in command
-    assert "-t" not in command
+    assert "-t" not in run_command_args[0].args[0]
     command_default = " ".join(run_command_args[1].args[0])
     assert "-id" not in command_default
 
@@ -1102,3 +1114,64 @@ def testNucleiAgent_whenDifferentApiSchemaEndpoints_shouldScanBoth(
     nuclei_agent_no_url_scope.process(scan_message_api_schema_http)
 
     assert prepare_targets_mock.call_count == 2
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
+def testAgentNuclei_whenScanning_passesErrorTimeoutAndRetryFlagsToNuclei(
+    scan_message_domain: message.Message,
+    nuclei_agent: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    run_command_mock = mocker.patch("subprocess.run", return_value=None)
+
+    nuclei_agent.process(scan_message_domain)
+
+    command = run_command_mock.call_args_list[0].args[0]
+    assert command[command.index("-max-host-error") + 1] == "10"
+    assert command[command.index("-timeout") + 1] == "7"
+    assert command[command.index("-retries") + 1] == "1"
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
+def testAgentNuclei_whenTargetIsUnreachable_skipsTheScan(
+    scan_message_domain: message.Message,
+    nuclei_agent: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    mocker.patch("agent.helpers.is_target_reachable", return_value=False)
+    run_command_mock = mocker.patch("subprocess.run", return_value=None)
+
+    nuclei_agent.process(scan_message_domain)
+
+    run_command_mock.assert_not_called()
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
+def testAgentNuclei_whenSkippingUnreachableTargetsIsDisabled_scansTheTarget(
+    scan_message_domain: message.Message,
+    nuclei_agent: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    mocker.patch("agent.helpers.is_target_reachable", return_value=False)
+    run_command_mock = mocker.patch("subprocess.run", return_value=None)
+    nuclei_agent._skip_unreachable_targets = False
+
+    nuclei_agent.process(scan_message_domain)
+
+    run_command_mock.assert_called()
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
+def testAgentNuclei_whenProxyIsSet_doesNotProbeTheTargets(
+    scan_message_domain: message.Message,
+    nuclei_agent: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    probe_mock = mocker.patch("agent.helpers.is_target_reachable", return_value=False)
+    run_command_mock = mocker.patch("subprocess.run", return_value=None)
+    nuclei_agent._proxy = "http://proxy.local:3128"
+
+    nuclei_agent.process(scan_message_domain)
+
+    probe_mock.assert_not_called()
+    run_command_mock.assert_called()
