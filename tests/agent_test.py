@@ -1209,11 +1209,13 @@ def testAgentNuclei_whenSeveralTargetsScanned_downloadsTemplatesOnce(
 
 
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
-def testAgentNuclei_whenTemplateDownloadFails_retriesItOnTheNextTarget(
+def testAgentNuclei_whenTemplateDownloadFailsOnce_retriesItBeforeScanningTheSameTarget(
     requests_mock: rq_mock.mocker.Mocker,
+    scan_message_domain: message.Message,
     nuclei_agent_args: agent_nuclei.AgentNuclei,
     mocker: plugin.MockerFixture,
 ) -> None:
+    sleep_mock = mocker.patch("agent.agent_nuclei.time.sleep")
     run_command_mock = mocker.patch("subprocess.run", return_value=None)
     mocker.patch("os.path.exists", return_value=True)
     requests_mock.get(TEMPLATE_1_URL, content=b"test1")
@@ -1221,6 +1223,32 @@ def testAgentNuclei_whenTemplateDownloadFails_retriesItOnTheNextTarget(
         TEMPLATE_2_URL,
         [{"status_code": 503}, {"status_code": 200, "content": b"test2"}],
     )
+
+    nuclei_agent_args.process(scan_message_domain)
+
+    assert template_2.call_count == 2
+    sleep_mock.assert_called_once_with(agent_nuclei.TEMPLATE_DOWNLOAD_BACKOFF_SECONDS)
+    custom_template_commands = [
+        " ".join(c.args[0])
+        for c in run_command_mock.call_args_list
+        if "-t" in c.args[0]
+    ]
+    assert len(custom_template_commands) == 1
+    assert "CVE1.yaml" in custom_template_commands[0]
+    assert "CVE2.yaml" in custom_template_commands[0]
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
+def testAgentNuclei_whenTemplateDownloadKeepsFailing_givesUpAfterBoundedRetriesAndTriesAgainOnNextTarget(
+    requests_mock: rq_mock.mocker.Mocker,
+    nuclei_agent_args: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    mocker.patch("agent.agent_nuclei.time.sleep")
+    run_command_mock = mocker.patch("subprocess.run", return_value=None)
+    mocker.patch("os.path.exists", return_value=True)
+    requests_mock.get(TEMPLATE_1_URL, content=b"test1")
+    template_2 = requests_mock.get(TEMPLATE_2_URL, status_code=503)
     first_target = message.Message.from_data(
         "v3.asset.domain_name", data={"name": "first.example.com"}
     )
@@ -1229,19 +1257,21 @@ def testAgentNuclei_whenTemplateDownloadFails_retriesItOnTheNextTarget(
     )
 
     nuclei_agent_args.process(first_target)
-    nuclei_agent_args.process(second_target)
 
-    assert template_2.call_count == 2
+    attempts_per_target = agent_nuclei.TEMPLATE_DOWNLOAD_RETRIES + 1
+    assert template_2.call_count == attempts_per_target
     custom_template_commands = [
         " ".join(c.args[0])
         for c in run_command_mock.call_args_list
         if "-t" in c.args[0]
     ]
-    assert len(custom_template_commands) == 2
+    assert len(custom_template_commands) == 1
     assert "CVE1.yaml" in custom_template_commands[0]
     assert "CVE2.yaml" not in custom_template_commands[0]
-    assert "CVE1.yaml" in custom_template_commands[1]
-    assert "CVE2.yaml" in custom_template_commands[1]
+
+    nuclei_agent_args.process(second_target)
+
+    assert template_2.call_count == 2 * attempts_per_target
 
 
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
@@ -1251,6 +1281,7 @@ def testAgentNuclei_whenAllTemplateDownloadsFail_doesNotRunCustomTemplates(
     nuclei_agent_args: agent_nuclei.AgentNuclei,
     mocker: plugin.MockerFixture,
 ) -> None:
+    mocker.patch("agent.agent_nuclei.time.sleep")
     run_command_mock = mocker.patch("subprocess.run", return_value=None)
     requests_mock.get(TEMPLATE_1_URL, status_code=404)
     requests_mock.get(TEMPLATE_2_URL, status_code=404)

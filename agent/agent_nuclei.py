@@ -12,6 +12,7 @@ import re
 import subprocess
 import tempfile
 import threading
+import time
 from os import path
 from typing import Any, cast
 from urllib import parse
@@ -58,6 +59,8 @@ IPV4_CIDR_LIMIT = 16
 IPV6_CIDR_LIMIT = 112
 TEMPLATE_DOWNLOAD_WORKERS = 16
 TEMPLATE_DOWNLOAD_TIMEOUT_SECONDS = 60
+TEMPLATE_DOWNLOAD_RETRIES = 2
+TEMPLATE_DOWNLOAD_BACKOFF_SECONDS = 2
 DEFAULT_MAX_HOST_ERROR = 10
 DEFAULT_REQUEST_TIMEOUT_SECONDS = 7
 DEFAULT_REQUEST_RETRIES = 1
@@ -364,7 +367,9 @@ class AgentNuclei(
         """Return the local paths of the custom templates, downloading each of them only once.
 
         The templates are the same for every target, they are fetched in parallel the first time they are needed
-        and reused for the following targets. A template that failed to download is retried on the next target.
+        and reused for the following targets. A template that failed to download is retried a few times with a
+        short backoff before the scan goes on without it, so a transient error does not silently drop a template
+        for the current target, and it is tried again on the next target.
         """
         if self._template_urls is None or len(self._template_urls) == 0:
             raise ValueError("No template URLs provided")
@@ -372,26 +377,42 @@ class AgentNuclei(
         with self._templates_lock:
             if self._templates_dir is None:
                 self._templates_dir = tempfile.TemporaryDirectory()
+            templates_dir = pathlib.Path(self._templates_dir.name)
             missing_urls = [
                 u for u in self._template_urls if u not in self._templates_cache
             ]
+            for attempt in range(TEMPLATE_DOWNLOAD_RETRIES + 1):
+                if len(missing_urls) == 0:
+                    break
+                if attempt > 0:
+                    time.sleep(TEMPLATE_DOWNLOAD_BACKOFF_SECONDS * attempt)
+                self._download_templates(missing_urls, templates_dir)
+                missing_urls = [
+                    u for u in missing_urls if u not in self._templates_cache
+                ]
             if len(missing_urls) > 0:
-                templates_dir = pathlib.Path(self._templates_dir.name)
-                with concurrent.futures.ThreadPoolExecutor(
-                    max_workers=TEMPLATE_DOWNLOAD_WORKERS
-                ) as executor:
-                    downloaded = executor.map(
-                        lambda u: self._download_template(u, templates_dir),
-                        missing_urls,
-                    )
-                    for url, template_path in zip(missing_urls, downloaded):
-                        if template_path is not None:
-                            self._templates_cache[url] = template_path
+                logger.warning(
+                    "Running without %d of %d custom templates that failed to download.",
+                    len(missing_urls),
+                    len(self._template_urls),
+                )
             return [
                 self._templates_cache[u]
                 for u in self._template_urls
                 if u in self._templates_cache
             ]
+
+    def _download_templates(self, urls: list[str], templates_dir: pathlib.Path) -> None:
+        """Download the templates in parallel and cache the paths of the ones that succeeded."""
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=TEMPLATE_DOWNLOAD_WORKERS
+        ) as executor:
+            downloaded = executor.map(
+                lambda u: self._download_template(u, templates_dir), urls
+            )
+            for url, template_path in zip(urls, downloaded):
+                if template_path is not None:
+                    self._templates_cache[url] = template_path
 
     def _download_template(self, url: str, templates_dir: pathlib.Path) -> str | None:
         """Download one template, returns its local path or None when the download failed."""
