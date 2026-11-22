@@ -117,3 +117,19 @@ args:
   - name: "proxy"
     type: "string"
     description: "Proxy to use for the scan with nuclei."
+  - name: "max_host_error"
+    type: "number"
+    description: "Number of errors after which nuclei stops scanning a host (nuclei -max-host-error)."
+    value: 10
+  - name: "timeout"
+    type: "number"
+    description: "Timeout in seconds of each nuclei request (nuclei -timeout)."
+    value: 7
+  - name: "retries"
+    type: "number"
+    description: "Number of times nuclei retries a failed request (nuclei -retries)."
+    value: 1
+  - name: "skip_unreachable_targets"
+    type: "boolean"
+    description: "Skip HTTP(S) targets that fail a single connection and TLS probe instead of scanning them. Not applied when a proxy is set."
+    value: true

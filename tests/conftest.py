@@ -10,7 +10,13 @@ from ostorlab.agent.message import message
 from ostorlab.runtimes import definitions as runtime_definitions
 from ostorlab.utils import definitions as utils_definitions
 
-from agent import agent_nuclei
+from agent import agent_nuclei, helpers
+
+
+@pytest.fixture(autouse=True)
+def reachable_targets(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Treats every target as reachable so tests never open real connections, individual tests override it."""
+    monkeypatch.setattr(helpers, "is_target_reachable", lambda *_args, **_kwargs: True)
 
 
 @pytest.fixture

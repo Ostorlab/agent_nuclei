@@ -1,12 +1,15 @@
 """Helper for nuclei Agent to complete the scan."""
 
+import concurrent.futures
 import ipaddress
 import json
 import logging
 from typing import Any, cast
 from urllib import parse
 
+import requests
 import tld
+import urllib3
 from ostorlab.agent.mixins import agent_report_vulnerability_mixin
 from ostorlab.assets import domain_name as domain_asset
 from ostorlab.assets import ipv4 as ipv4_asset
@@ -21,6 +24,13 @@ logging.basicConfig(
     force=True,
 )
 logger = logging.getLogger(__name__)
+
+REACHABILITY_TIMEOUT_SECONDS = 5
+REACHABILITY_MAX_WORKERS = 16
+HTTP_SCHEMES = ("http://", "https://")
+
+# Reachability probes intentionally skip certificate verification, nuclei does the same.
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 def is_ipv4(potential_ip: str) -> bool:
@@ -197,3 +207,64 @@ def compute_dna(
         dna_data["location"] = sorted_location_dict
 
     return json.dumps(dna_data, sort_keys=True)
+
+
+def is_target_reachable(
+    url: str, timeout: float = REACHABILITY_TIMEOUT_SECONDS
+) -> bool:
+    """Check that a URL answers at the TCP and TLS level with a single request.
+
+    Any HTTP response, whatever its status code, means the host is reachable. A read timeout also counts as
+    reachable: the connection was established, the host is only slow, and skipping it could hide findings.
+
+    Args:
+        url: Target URL to probe.
+        timeout: Connect and read timeout, in seconds.
+
+    Returns:
+        - True if the host can be scanned, False if the connection or the TLS handshake fails.
+    """
+    try:
+        with requests.get(
+            url,
+            timeout=timeout,
+            allow_redirects=False,
+            verify=False,
+            stream=True,
+        ):
+            return True
+    except requests.exceptions.ReadTimeout:
+        return True
+    except requests.exceptions.RequestException as e:
+        logger.info("target %s is unreachable: %s", url, e)
+        return False
+
+
+def filter_reachable_targets(
+    targets: list[str], timeout: float = REACHABILITY_TIMEOUT_SECONDS
+) -> list[str]:
+    """Drop the HTTP(S) targets that can't be connected to, keep every other target untouched.
+
+    Targets without an explicit http or https scheme, like `ip:port`, are always kept because the protocol to
+    probe is unknown.
+
+    Args:
+        targets: Targets about to be passed to nuclei.
+        timeout: Timeout of each probe, in seconds.
+
+    Returns:
+        - The targets worth scanning, in their original order.
+    """
+    to_probe = [t for t in targets if t.startswith(HTTP_SCHEMES)]
+    if len(to_probe) == 0:
+        return targets
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=REACHABILITY_MAX_WORKERS
+    ) as executor:
+        results = dict(
+            zip(
+                to_probe,
+                executor.map(lambda t: is_target_reachable(t, timeout), to_probe),
+            )
+        )
+    return [t for t in targets if results.get(t, True) is True]
