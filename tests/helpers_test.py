@@ -260,6 +260,19 @@ def testIsTargetReachable_whenReadTimesOut_returnsTrue(
     assert ORIGINAL_IS_TARGET_REACHABLE("https://example.com") is True
 
 
+def testIsTargetReachable_whenProxyEnvironmentVariablesSet_ignoresThem(
+    requests_mock: rq_mock.mocker.Mocker,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("HTTPS_PROXY", "http://proxy.local:3128")
+    monkeypatch.setenv("ALL_PROXY", "http://proxy.local:3128")
+    requests_mock.get("https://example.com", status_code=200)
+
+    assert ORIGINAL_IS_TARGET_REACHABLE("https://example.com") is True
+
+    assert not requests_mock.request_history[0].proxies
+
+
 def testFilterReachableTargets_whenSomeTargetsUnreachable_dropsOnlyThoseTargets(
     mocker: plugin.MockerFixture,
 ) -> None:
