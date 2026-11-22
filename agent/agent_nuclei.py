@@ -1,7 +1,9 @@
 """Agent implementation for nuclei scanner."""
 
 import base64
+import concurrent.futures
 import dataclasses
+import hashlib
 import ipaddress
 import json
 import logging
@@ -9,6 +11,7 @@ import pathlib
 import re
 import subprocess
 import tempfile
+import threading
 from os import path
 from typing import Any, cast
 from urllib import parse
@@ -53,6 +56,8 @@ STORAGE_NAME = "agent_nuclei"
 MAX_TARGETS_COMMAND_LINE = 10
 IPV4_CIDR_LIMIT = 16
 IPV6_CIDR_LIMIT = 112
+TEMPLATE_DOWNLOAD_WORKERS = 16
+TEMPLATE_DOWNLOAD_TIMEOUT_SECONDS = 60
 DEFAULT_MAX_HOST_ERROR = 10
 DEFAULT_REQUEST_TIMEOUT_SECONDS = 7
 DEFAULT_REQUEST_RETRIES = 1
@@ -168,6 +173,9 @@ class AgentNuclei(
             self.args.get("timeout", DEFAULT_REQUEST_TIMEOUT_SECONDS)
         )
         self._request_retries = int(self.args.get("retries", DEFAULT_REQUEST_RETRIES))
+        self._templates_dir: tempfile.TemporaryDirectory[str] | None = None
+        self._templates_cache: dict[str, str] = {}
+        self._templates_lock = threading.Lock()
         self._skip_unreachable_targets: bool = (
             self.args.get("skip_unreachable_targets", True) is True
         )
@@ -348,20 +356,63 @@ class AgentNuclei(
 
     def _run_templates(self, targets: list[str]) -> None:
         """Run Nuclei scan on the provided templates"""
+        templates = self._get_templates()
+        if len(templates) > 0:
+            self._run_command(targets, templates)
+
+    def _get_templates(self) -> list[str]:
+        """Return the local paths of the custom templates, downloading each of them only once.
+
+        The templates are the same for every target, they are fetched in parallel the first time they are needed
+        and reused for the following targets. A template that failed to download is retried on the next target.
+        """
         if self._template_urls is None or len(self._template_urls) == 0:
             raise ValueError("No template URLs provided")
 
-        templates = []
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            file_path = pathlib.Path(tmp_dir)
-            for url in self._template_urls:
-                r = requests.get(url, allow_redirects=True, timeout=60)
-                with (file_path / url.split("/")[-1]).open(mode="wb") as f:
-                    f.write(r.content)
-                templates.append(str(file_path / url.split("/")[-1]))
+        with self._templates_lock:
+            if self._templates_dir is None:
+                self._templates_dir = tempfile.TemporaryDirectory()
+            missing_urls = [
+                u for u in self._template_urls if u not in self._templates_cache
+            ]
+            if len(missing_urls) > 0:
+                templates_dir = pathlib.Path(self._templates_dir.name)
+                with concurrent.futures.ThreadPoolExecutor(
+                    max_workers=TEMPLATE_DOWNLOAD_WORKERS
+                ) as executor:
+                    downloaded = executor.map(
+                        lambda u: self._download_template(u, templates_dir),
+                        missing_urls,
+                    )
+                    for url, template_path in zip(missing_urls, downloaded):
+                        if template_path is not None:
+                            self._templates_cache[url] = template_path
+            return [
+                self._templates_cache[u]
+                for u in self._template_urls
+                if u in self._templates_cache
+            ]
 
-            if len(templates) > 0:
-                self._run_command(targets, templates)
+    def _download_template(self, url: str, templates_dir: pathlib.Path) -> str | None:
+        """Download one template, returns its local path or None when the download failed."""
+        try:
+            response = requests.get(
+                url, allow_redirects=True, timeout=TEMPLATE_DOWNLOAD_TIMEOUT_SECONDS
+            )
+        except requests.exceptions.RequestException as e:
+            logger.warning("Failed to download template %s: %s", url, e)
+            return None
+        if response.status_code != 200:
+            logger.warning(
+                "Failed to download template %s: status %s", url, response.status_code
+            )
+            return None
+        # The url hash keeps two templates that share a file name from overwriting each other.
+        template_dir = templates_dir / hashlib.sha256(url.encode()).hexdigest()[:12]
+        template_dir.mkdir(exist_ok=True)
+        template_path = template_dir / url.split("/")[-1]
+        template_path.write_bytes(response.content)
+        return str(template_path)
 
     def _is_target_already_processed(self, message: m.Message) -> bool:
         """Checks if the target has already been processed before, relies on the redis server."""
