@@ -225,14 +225,18 @@ def is_target_reachable(
         - True if the host can be scanned, False if the connection or the TLS handshake fails.
     """
     try:
-        with requests.get(
-            url,
-            timeout=timeout,
-            allow_redirects=False,
-            verify=False,
-            stream=True,
-        ):
-            return True
+        # The probe must take the same network path as nuclei, which only uses a proxy when `-proxy` is passed, so
+        # the HTTP_PROXY, HTTPS_PROXY and ALL_PROXY environment variables are ignored.
+        with requests.Session() as session:
+            session.trust_env = False
+            with session.get(
+                url,
+                timeout=timeout,
+                allow_redirects=False,
+                verify=False,
+                stream=True,
+            ):
+                return True
     except requests.exceptions.ReadTimeout:
         return True
     except requests.exceptions.RequestException as e:
