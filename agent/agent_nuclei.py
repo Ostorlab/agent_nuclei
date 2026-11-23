@@ -72,7 +72,12 @@ NUCLEI_TIMEOUT_SECONDS = NUCLEI_TIMEOUT_MINUTES * 60
 # third-party pages the scan reaches through redirects. Such a match is not a signal about the
 # scanned asset, so the finding is suppressed agent-side. matcher-name is None for templates
 # whose matcher is unnamed (nuclei omits it from the JSON output in silent mode).
-KNOWN_FP_MATCHERS: set[tuple[str, str | None]] = {("form-detection", None)}
+# CVE-2026-111497 (node2shell) infers a Brotli decoder from response differences between control
+# requests, which a static host or a CDN that never reads the request body also produces.
+KNOWN_FP_MATCHERS: set[tuple[str, str | None]] = {
+    ("form-detection", None),
+    ("CVE-2026-111497", None),
+}
 
 # Templates that must never run, in any mode. Their requests are themselves unreliable or
 # harmful enough that suppressing the result is not enough: CVE-2022-44727 fingerprints the
