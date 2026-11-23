@@ -1,5 +1,7 @@
 """Unittests for nuclei class."""
 
+import json
+import pathlib
 import subprocess
 from unittest import mock
 
@@ -982,35 +984,16 @@ def testAgentNuclei_whenFormDetectionMatchesGenericPage_shouldNotReport(
 
 
 @mock.patch(
-    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_node2shell_brotli_fp.json"
+    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_cookie_deletion_fp.json"
 )
-def testAgentNuclei_whenNode2ShellBrotliTemplateMatches_shouldNotReport(
+def testAgentNuclei_whenCookieAttributeMatchesDeletionDirective_shouldNotReport(
     scan_message: message.Message,
     nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
     mocker: plugin.MockerFixture,
 ) -> None:
-    """The upstream `CVE-2026-111497` template infers a Brotli decoder from response differences
-    between control requests, which a host that never reads the request body also produces, so
-    the finding is a known false positive and must not be reported."""
-    mocker.patch("subprocess.run", return_value=None)
-    mock_report_vulnerability = mocker.patch(
-        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
-    )
-
-    nuclei_agent_no_url_scope.process(scan_message)
-
-    assert mock_report_vulnerability.called is False
-
-
-@mock.patch(
-    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_lgcookieslaw_fp.json"
-)
-def testAgentNuclei_whenLgcookieslawTemplateMatches_shouldNotReport(
-    scan_message: message.Message,
-    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
-    mocker: plugin.MockerFixture,
-) -> None:
-    """Suppress both timing matchers from the upstream and KEV template copies."""
+    """The upstream `missing-cookie-samesite-strict` template treats an expired cookie-deletion
+    directive (`session=deleted; Max-Age=0; expires=1970`) as an application session cookie, so
+    the finding is a false positive and must not be reported."""
     mocker.patch("subprocess.run", return_value=None)
     mock_report_vulnerability = mocker.patch(
         "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
@@ -1019,6 +1002,111 @@ def testAgentNuclei_whenLgcookieslawTemplateMatches_shouldNotReport(
     nuclei_agent_no_url_scope.process(scan_message)
 
     mock_report_vulnerability.assert_not_called()
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH",
+    "./tests/result_nuclei_cookie_infrastructure_fp.json",
+)
+def testAgentNuclei_whenCookieAttributeMatchesInfrastructureCookie_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """The upstream `cookies-without-secure` template flags Cloudflare's `__cf_bm` bot-management
+    cookie as an application cookie gap, so the finding is a false positive and must not be
+    reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_cookie_app_session.json"
+)
+def testAgentNuclei_whenCookieAttributeMatchesAppSessionCookie_shouldReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """A genuine application session cookie missing the SameSite attribute must still be reported:
+    the cookie-attribute suppression only covers infrastructure and deletion cookies."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "cookie",
+    [
+        "session=active; Max-Age=01",
+        "session=active; Max-Age=0.5",
+        "session=max-age=0dark; Path=/",
+        "session=; Path=/",
+        "session=deleted; Path=/",
+        "session=expires=1970; Path=/",
+        "session=active; Expires=invalid-1970",
+        "session=active; Max-Age=3600; Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+        "session=active; Max-Age=3600; Max-Age=invalid; Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+    ],
+)
+def testAgentNuclei_whenCookieHasNoDeletionExpiry_shouldReport(
+    cookie: str,
+    tmp_path: pathlib.Path,
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Cookie contents do not delete cookies, and Max-Age overrides Expires."""
+    event = json.loads(
+        pathlib.Path("tests/result_nuclei_cookie_app_session.json").read_text()
+    )
+    event["response"] = f"HTTP/1.1 200 OK\r\nSet-Cookie: {cookie}\r\n\r\n"
+    output_path = tmp_path / "nuclei.json"
+    output_path.write_text(json.dumps(event))
+    mocker.patch("agent.agent_nuclei.OUTPUT_PATH", str(output_path))
+    mocker.patch("subprocess.run", return_value=None)
+    report = mocker.patch("agent.agent_nuclei.AgentNuclei.report_vulnerability")
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    report.assert_called_once()
+    assert "Missing Cookie SameSite Strict" in report.call_args.kwargs["entry"].title
+
+
+def testAgentNuclei_whenBodyContainsDeletionHeader_shouldReport(
+    tmp_path: pathlib.Path,
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Text in an HTML response body cannot prove a cookie finding is spurious."""
+    event = json.loads(
+        pathlib.Path("tests/result_nuclei_cookie_app_session.json").read_text()
+    )
+    event["response"] = (
+        "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nSet-Cookie: session=deleted; Max-Age=0"
+    )
+    output_path = tmp_path / "nuclei.json"
+    output_path.write_text(json.dumps(event))
+    mocker.patch("agent.agent_nuclei.OUTPUT_PATH", str(output_path))
+    mocker.patch("subprocess.run", return_value=None)
+    report = mocker.patch("agent.agent_nuclei.AgentNuclei.report_vulnerability")
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    report.assert_called_once()
+    assert "Missing Cookie SameSite Strict" in report.call_args.kwargs["entry"].title
 
 
 def testPrepareTargets_whenMessageIsDomainName_shouldReturnDomainName(
@@ -1329,3 +1417,43 @@ def testAgentNuclei_whenAllTemplateDownloadsFail_doesNotRunCustomTemplates(
     nuclei_agent_args.process(scan_message_domain)
 
     assert all("-t" not in c.args[0] for c in run_command_mock.call_args_list)
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_node2shell_brotli_fp.json"
+)
+def testAgentNuclei_whenNode2ShellBrotliTemplateMatches_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """The upstream `CVE-2026-111497` template infers a Brotli decoder from response differences
+    between control requests, which a host that never reads the request body also produces, so
+    the finding is a known false positive and must not be reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    assert mock_report_vulnerability.called is False
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_lgcookieslaw_fp.json"
+)
+def testAgentNuclei_whenLgcookieslawTemplateMatches_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Suppress both timing matchers from the upstream and KEV template copies."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
