@@ -74,9 +74,12 @@ NUCLEI_TIMEOUT_SECONDS = NUCLEI_TIMEOUT_MINUTES * 60
 # whose matcher is unnamed (nuclei omits it from the JSON output in silent mode).
 # CVE-2026-111497 (node2shell) infers a Brotli decoder from response differences between control
 # requests, which a static host or a CDN that never reads the request body also produces.
+# CVE-2022-44727 trusts a weak lgcookieslaw fingerprint and a single slow request.
 KNOWN_FP_MATCHERS: set[tuple[str, str | None]] = {
     ("form-detection", None),
     ("CVE-2026-111497", None),
+    ("CVE-2022-44727", "lglaw-v1-sqli"),
+    ("CVE-2022-44727", "lglaw-v2-sqli"),
 }
 
 

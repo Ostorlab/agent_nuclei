@@ -1002,6 +1002,25 @@ def testAgentNuclei_whenNode2ShellBrotliTemplateMatches_shouldNotReport(
     assert mock_report_vulnerability.called is False
 
 
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_lgcookieslaw_fp.json"
+)
+def testAgentNuclei_whenLgcookieslawTemplateMatches_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Suppress both timing matchers from the upstream and KEV template copies."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
+
+
 def testPrepareTargets_whenMessageIsDomainName_shouldReturnDomainName(
     scan_message_ipv4_with_port: message.Message,
     nuclei_agent: agent_nuclei.AgentNuclei,
