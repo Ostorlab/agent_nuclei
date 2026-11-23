@@ -74,6 +74,39 @@ NUCLEI_TIMEOUT_SECONDS = NUCLEI_TIMEOUT_MINUTES * 60
 # whose matcher is unnamed (nuclei omits it from the JSON output in silent mode).
 KNOWN_FP_MATCHERS: set[tuple[str, str | None]] = {("form-detection", None)}
 
+# Upstream cookie-attribute templates (missing-cookie-samesite-strict, cookies-without-secure,
+# cookies-without-httponly) treat any Set-Cookie seen on a scanned host as an application session
+# cookie. They also flag infrastructure cookies (Cloudflare/Google load-balancer bot cookies) and
+# expired cookie-deletion directives, which are not application session cookies, so those findings
+# are suppressed agent-side when the response carries no application cookie.
+COOKIE_ATTRIBUTE_TEMPLATE_IDS = {
+    "missing-cookie-samesite-strict",
+    "cookies-without-secure",
+    "cookies-without-httponly",
+}
+
+# Cookie names set by edge infrastructure rather than by the scanned application: Cloudflare bot
+# management, Google Cloud Load Balancer affinity and anti-abuse cookies, AWS ELB/ALB sticky
+# cookies and Akamai bot-manager cookies. A missing SameSite/Secure/HttpOnly attribute on them is
+# not a weakness of the scanned application.
+INFRASTRUCTURE_COOKIE_NAMES = {
+    "__cf_bm",
+    "__cfduid",
+    "__cflb",
+    "__cfruid",
+    "_cfuvid",
+    "cf_clearance",
+    "gclb",
+    "google_abuse_exemption",
+    "awsalb",
+    "awsalbtg",
+    "awselb",
+    "awselbcors",
+    "ak_bmsc",
+    "bm_sz",
+    "_abck",
+}
+
 
 def _is_known_false_positive(nuclei_data_dict: dict[str, Any]) -> bool:
     """Tell whether a nuclei result matches a known false-positive template.
@@ -87,6 +120,88 @@ def _is_known_false_positive(nuclei_data_dict: dict[str, Any]) -> bool:
     template_id = nuclei_data_dict.get("template-id")
     matcher_name = nuclei_data_dict.get("matcher-name")
     return (template_id, matcher_name) in KNOWN_FP_MATCHERS
+
+
+def _extract_set_cookie_values(response: str) -> list[str]:
+    """Extract the Set-Cookie header values of a raw HTTP response.
+
+    Args:
+        response: The raw HTTP response captured by nuclei.
+
+    Returns:
+        The values of the `Set-Cookie` headers, in order of appearance.
+    """
+    return [
+        line.split(":", 1)[1].strip()
+        for line in response.splitlines()
+        if line.lower().startswith("set-cookie:")
+    ]
+
+
+def _is_deletion_directive(set_cookie: str) -> bool:
+    """Tell whether a Set-Cookie value is an expired cookie-deletion directive.
+
+    A directive that tells the browser to drop the cookie (empty or `deleted` value,
+    `Max-Age=0`, or an epoch `Expires` date) is not a live session cookie, so a missing
+    SameSite/Secure/HttpOnly attribute on it is meaningless.
+
+    Args:
+        set_cookie: One `Set-Cookie` header value.
+
+    Returns:
+        True when the cookie is a deletion directive.
+    """
+    lowered = set_cookie.lower()
+    if "max-age=0" in lowered:
+        return True
+    value = set_cookie.split(";", 1)[0].split("=", 1)
+    if len(value) == 2 and value[1].strip().lower() in ("", "deleted"):
+        return True
+    expires_match = re.search(r"expires\s*=\s*([^;]+)", lowered)
+    return expires_match is not None and "1970" in expires_match.group(1)
+
+
+def _is_infrastructure_cookie(set_cookie: str) -> bool:
+    """Tell whether a Set-Cookie value belongs to edge infrastructure.
+
+    Args:
+        set_cookie: One `Set-Cookie` header value.
+
+    Returns:
+        True when the cookie name is a known infrastructure/bot-management cookie.
+    """
+    name = set_cookie.split("=", 1)[0].strip().lower()
+    return name in INFRASTRUCTURE_COOKIE_NAMES
+
+
+def _is_cookie_attribute_false_positive(nuclei_data_dict: dict[str, Any]) -> bool:
+    """Tell whether a cookie-attribute finding only concerns infrastructure or
+    expired cookies rather than application session cookies.
+
+    The upstream cookie-attribute templates fire on any Set-Cookie lacking the attribute, so a
+    response that only sets infrastructure cookies or expired cookie-deletion directives is
+    reported as an application cookie gap. Such a finding is a false positive and is suppressed
+    only when every Set-Cookie of the response is a deletion directive or an infrastructure
+    cookie; any application cookie keeps the finding reported.
+
+    Args:
+        nuclei_data_dict: A single parsed nuclei JSON event.
+
+    Returns:
+        True when the finding is a known cookie-attribute false positive.
+    """
+    if nuclei_data_dict.get("template-id") not in COOKIE_ATTRIBUTE_TEMPLATE_IDS:
+        return False
+    response = nuclei_data_dict.get("response")
+    if not isinstance(response, str) or response == "":
+        return False
+    set_cookies = _extract_set_cookie_values(response)
+    if len(set_cookies) == 0:
+        return False
+    return all(
+        _is_deletion_directive(set_cookie) or _is_infrastructure_cookie(set_cookie)
+        for set_cookie in set_cookies
+    )
 
 
 @dataclasses.dataclass
@@ -254,6 +369,12 @@ class AgentNuclei(
                 if _is_known_false_positive(nuclei_data_dict) is True:
                     logger.info(
                         "Skipping known false positive template `%s`.",
+                        nuclei_data_dict.get("template-id"),
+                    )
+                    continue
+                if _is_cookie_attribute_false_positive(nuclei_data_dict) is True:
+                    logger.info(
+                        "Skipping cookie attribute false positive template `%s`.",
                         nuclei_data_dict.get("template-id"),
                     )
                     continue

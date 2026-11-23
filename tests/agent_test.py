@@ -981,6 +981,69 @@ def testAgentNuclei_whenFormDetectionMatchesGenericPage_shouldNotReport(
     mock_report_vulnerability.assert_not_called()
 
 
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_cookie_deletion_fp.json"
+)
+def testAgentNuclei_whenCookieAttributeMatchesDeletionDirective_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """The upstream `missing-cookie-samesite-strict` template treats an expired cookie-deletion
+    directive (`session=deleted; Max-Age=0; expires=1970`) as an application session cookie, so
+    the finding is a false positive and must not be reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH",
+    "./tests/result_nuclei_cookie_infrastructure_fp.json",
+)
+def testAgentNuclei_whenCookieAttributeMatchesInfrastructureCookie_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """The upstream `cookies-without-secure` template flags Cloudflare's `__cf_bm` bot-management
+    cookie as an application cookie gap, so the finding is a false positive and must not be
+    reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_cookie_app_session.json"
+)
+def testAgentNuclei_whenCookieAttributeMatchesAppSessionCookie_shouldReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """A genuine application session cookie missing the SameSite attribute must still be reported:
+    the cookie-attribute suppression only covers infrastructure and deletion cookies."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_called_once()
+
+
 def testPrepareTargets_whenMessageIsDomainName_shouldReturnDomainName(
     scan_message_ipv4_with_port: message.Message,
     nuclei_agent: agent_nuclei.AgentNuclei,
