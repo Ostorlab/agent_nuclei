@@ -3,6 +3,7 @@
 import base64
 import concurrent.futures
 import dataclasses
+import email.utils
 import hashlib
 import ipaddress
 import json
@@ -131,19 +132,21 @@ def _extract_set_cookie_values(response: str) -> list[str]:
     Returns:
         The values of the `Set-Cookie` headers, in order of appearance.
     """
-    return [
-        line.split(":", 1)[1].strip()
-        for line in response.splitlines()
-        if line.lower().startswith("set-cookie:")
-    ]
+    values = []
+    for line in response.splitlines():
+        if line == "":
+            break
+        if line.lower().startswith("set-cookie:"):
+            values.append(line.split(":", 1)[1].strip())
+    return values
 
 
 def _is_deletion_directive(set_cookie: str) -> bool:
     """Tell whether a Set-Cookie value is an expired cookie-deletion directive.
 
-    A directive that tells the browser to drop the cookie (empty or `deleted` value,
-    `Max-Age=0`, or an epoch `Expires` date) is not a live session cookie, so a missing
-    SameSite/Secure/HttpOnly attribute on it is meaningless.
+    A non-positive Max-Age or an epoch Expires date drops the cookie. An empty
+    value or the literal `deleted` does not, by itself, expire a cookie.
+    Max-Age takes precedence over Expires, including when it keeps a cookie alive.
 
     Args:
         set_cookie: One `Set-Cookie` header value.
@@ -151,14 +154,27 @@ def _is_deletion_directive(set_cookie: str) -> bool:
     Returns:
         True when the cookie is a deletion directive.
     """
-    lowered = set_cookie.lower()
-    if "max-age=0" in lowered:
-        return True
-    value = set_cookie.split(";", 1)[0].split("=", 1)
-    if len(value) == 2 and value[1].strip().lower() in ("", "deleted"):
-        return True
-    expires_match = re.search(r"expires\s*=\s*([^;]+)", lowered)
-    return expires_match is not None and "1970" in expires_match.group(1)
+    attributes = {}
+    for attribute in set_cookie.split(";")[1:]:
+        name, separator, value = attribute.partition("=")
+        if separator == "=":
+            name = name.strip().lower()
+            value = value.strip()
+            if name == "max-age" and re.fullmatch(r"-?[0-9]+", value) is None:
+                continue
+            attributes[name] = value
+    max_age = attributes.get("max-age")
+    if max_age is not None and re.fullmatch(r"-?[0-9]+", max_age) is not None:
+        return max_age.startswith("-") or max_age.strip("0") == ""
+    expires = attributes.get("expires")
+    if expires is None:
+        return False
+    try:
+        # Restrict this proof to explicit epoch expiry. Comparing an archived
+        # response's cookies with today's time would suppress formerly live ones.
+        return email.utils.parsedate_to_datetime(expires).year == 1970
+    except (ValueError, TypeError, OverflowError):
+        return False
 
 
 def _is_infrastructure_cookie(set_cookie: str) -> bool:

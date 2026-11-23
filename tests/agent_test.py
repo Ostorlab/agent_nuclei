@@ -1,5 +1,7 @@
 """Unittests for nuclei class."""
 
+import json
+import pathlib
 import subprocess
 from unittest import mock
 
@@ -1042,6 +1044,69 @@ def testAgentNuclei_whenCookieAttributeMatchesAppSessionCookie_shouldReport(
     nuclei_agent_no_url_scope.process(scan_message)
 
     mock_report_vulnerability.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "cookie",
+    [
+        "session=active; Max-Age=01",
+        "session=active; Max-Age=0.5",
+        "session=max-age=0dark; Path=/",
+        "session=; Path=/",
+        "session=deleted; Path=/",
+        "session=expires=1970; Path=/",
+        "session=active; Expires=invalid-1970",
+        "session=active; Max-Age=3600; Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+        "session=active; Max-Age=3600; Max-Age=invalid; Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+    ],
+)
+def testAgentNuclei_whenCookieHasNoDeletionExpiry_shouldReport(
+    cookie: str,
+    tmp_path: pathlib.Path,
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Cookie contents do not delete cookies, and Max-Age overrides Expires."""
+    event = json.loads(
+        pathlib.Path("tests/result_nuclei_cookie_app_session.json").read_text()
+    )
+    event["response"] = f"HTTP/1.1 200 OK\r\nSet-Cookie: {cookie}\r\n\r\n"
+    output_path = tmp_path / "nuclei.json"
+    output_path.write_text(json.dumps(event))
+    mocker.patch("agent.agent_nuclei.OUTPUT_PATH", str(output_path))
+    mocker.patch("subprocess.run", return_value=None)
+    report = mocker.patch("agent.agent_nuclei.AgentNuclei.report_vulnerability")
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    report.assert_called_once()
+    assert "Missing Cookie SameSite Strict" in report.call_args.kwargs["entry"].title
+
+
+def testAgentNuclei_whenBodyContainsDeletionHeader_shouldReport(
+    tmp_path: pathlib.Path,
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Text in an HTML response body cannot prove a cookie finding is spurious."""
+    event = json.loads(
+        pathlib.Path("tests/result_nuclei_cookie_app_session.json").read_text()
+    )
+    event["response"] = (
+        "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nSet-Cookie: session=deleted; Max-Age=0"
+    )
+    output_path = tmp_path / "nuclei.json"
+    output_path.write_text(json.dumps(event))
+    mocker.patch("agent.agent_nuclei.OUTPUT_PATH", str(output_path))
+    mocker.patch("subprocess.run", return_value=None)
+    report = mocker.patch("agent.agent_nuclei.AgentNuclei.report_vulnerability")
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    report.assert_called_once()
+    assert "Missing Cookie SameSite Strict" in report.call_args.kwargs["entry"].title
 
 
 def testPrepareTargets_whenMessageIsDomainName_shouldReturnDomainName(
