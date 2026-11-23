@@ -89,6 +89,8 @@ def testAgentNuclei_whenUrlTemplatesGiven_RunScan(
         "7",
         "-retries",
         "1",
+        "-exclude-id",
+        "CVE-2022-44727",
     ]
     command = " ".join(run_command_args[0].args[0])
     assert "/nuclei/nuclei" in command
@@ -102,6 +104,13 @@ def testAgentNuclei_whenUrlTemplatesGiven_RunScan(
     assert "CVE1.yaml" in command
     assert "-t" in command
     assert "CVE2.yaml" in command
+    assert "-exclude-id" in run_command_args[0].args[0]
+    assert (
+        run_command_args[0].args[0][
+            run_command_args[0].args[0].index("-exclude-id") + 1
+        ]
+        == "CVE-2022-44727"
+    )
     mock_report_vulnerability.assert_called()
 
 
@@ -191,6 +200,8 @@ def testAgentNuclei_whenTemplatesProvided_scansAppWithTemplate(
             "7",
             "-retries",
             "1",
+            "-exclude-id",
+            "CVE-2022-44727",
         ],
     )
 
@@ -835,8 +846,37 @@ def testAgentNuclei_withTemplateIds_RunScan(
     assert "cve-2021-1234" in command
     assert "cve-2021-5678" in command
     assert "-t" not in run_command_args[0].args[0]
-    command_default = " ".join(run_command_args[1].args[0])
-    assert "-id" not in command_default
+    assert "-id" not in run_command_args[1].args[0]
+    assert "-exclude-id" in run_command_args[0].args[0]
+    assert "CVE-2022-44727" in run_command_args[0].args[0]
+    assert "-exclude-id" in run_command_args[1].args[0]
+    assert "CVE-2022-44727" in run_command_args[1].args[0]
+
+
+def testExcludedTemplateIds_containsCve202244727() -> None:
+    """The excluded template list keeps the known false-positive template."""
+    assert "CVE-2022-44727" in agent_nuclei.EXCLUDED_TEMPLATE_IDS
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
+def testAgentNuclei_whenDefaultTemplatesRun_excludesCve202244727(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Every built nuclei command carries the exclusion, whatever loads templates."""
+    run_command_mock = mocker.patch("subprocess.run", return_value=None)
+    mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    assert run_command_mock.called
+    for call in run_command_mock.call_args_list:
+        command = call.args[0]
+        assert "-exclude-id" in command
+        assert command[command.index("-exclude-id") + 1] == "CVE-2022-44727"
 
 
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
