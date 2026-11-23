@@ -74,19 +74,13 @@ NUCLEI_TIMEOUT_SECONDS = NUCLEI_TIMEOUT_MINUTES * 60
 # whose matcher is unnamed (nuclei omits it from the JSON output in silent mode).
 # CVE-2026-111497 (node2shell) infers a Brotli decoder from response differences between control
 # requests, which a static host or a CDN that never reads the request body also produces.
+# CVE-2022-44727 trusts a weak lgcookieslaw fingerprint and a single slow request.
 KNOWN_FP_MATCHERS: set[tuple[str, str | None]] = {
     ("form-detection", None),
     ("CVE-2026-111497", None),
+    ("CVE-2022-44727", "lglaw-v1-sqli"),
+    ("CVE-2022-44727", "lglaw-v2-sqli"),
 }
-
-# Templates that must never run, in any mode. Their requests are themselves unreliable or
-# harmful enough that suppressing the result is not enough: CVE-2022-44727 fingerprints the
-# PrestaShop lgcookieslaw module from the requested URL and reports a time-based finding from a
-# single slow request, so every run sends the SLEEP payload before KNOWN_FP_MATCHERS can drop the
-# result. ``-exclude-id`` keeps nuclei from loading or sending these templates whether they come
-# from the default template set, ``template_ids`` or ``template_urls`` (including the Ostorlab/KEV
-# copy of the same template).
-EXCLUDED_TEMPLATE_IDS: tuple[str, ...] = ("CVE-2022-44727",)
 
 
 def _is_known_false_positive(nuclei_data_dict: dict[str, Any]) -> bool:
@@ -651,8 +645,6 @@ class AgentNuclei(
                     str(self._request_retries),
                 ]
             )
-            for template_id in EXCLUDED_TEMPLATE_IDS:
-                command.extend(["-exclude-id", template_id])
             if run_default_templates is False:
                 if templates is not None:
                     for template in templates:
