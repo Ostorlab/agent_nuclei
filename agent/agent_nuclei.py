@@ -43,9 +43,11 @@ OUTPUT_PATH = "/tmp/result_nuclei.json"
 # body also produces. It is excluded from the default run and replaced by the corrected copy
 # bundled below, which compares decoded content rather than raw framing and repeats its controls.
 NODE2SHELL_TEMPLATE_ID = "CVE-2026-111497"
+# the corrected copy carries its own id rather than the upstream `CVE-2026-111497`, so it is not
+# mistaken for the signed template it replaces and its findings are attributable to this fix
 CORRECTED_TEMPLATES_DIR = str(pathlib.Path(__file__).parent / "templates")
 CORRECTED_TEMPLATES = [
-    str(pathlib.Path(CORRECTED_TEMPLATES_DIR) / f"{NODE2SHELL_TEMPLATE_ID}.yaml")
+    str(pathlib.Path(CORRECTED_TEMPLATES_DIR) / "ostorlab-node2shell-brotli-rce.yaml")
 ]
 # The corrected templates write to their own output file so their run is parsed on its own,
 # never re-reading the findings the default run left in OUTPUT_PATH.

@@ -1,4 +1,4 @@
-id: CVE-2026-111497
+id: ostorlab-node2shell-brotli-rce
 
 info:
   name: Node.js Brotli Request-Body Integer Overflow (node2shell) - Remote Code Execution
