@@ -38,6 +38,19 @@ logger = logging.getLogger(__name__)
 
 OUTPUT_PATH = "/tmp/result_nuclei.json"
 
+# The upstream `CVE-2026-111497` (node2shell) template infers a vulnerable Brotli decoder from
+# differences between control responses, which a static host or a CDN that never reads the request
+# body also produces. It is excluded from the default run and replaced by the corrected copy
+# bundled below, which compares decoded content rather than raw framing and repeats its controls.
+NODE2SHELL_TEMPLATE_ID = "CVE-2026-111497"
+CORRECTED_TEMPLATES_DIR = str(pathlib.Path(__file__).parent / "templates")
+CORRECTED_TEMPLATES = [
+    str(pathlib.Path(CORRECTED_TEMPLATES_DIR) / f"{NODE2SHELL_TEMPLATE_ID}.yaml")
+]
+# The corrected templates write to their own output file so their run is parsed on its own,
+# never re-reading the findings the default run left in OUTPUT_PATH.
+CORRECTED_OUTPUT_PATH = "/tmp/result_nuclei_corrected.json"
+
 SCHEME_TO_PORT = {"http": 80, "https": 443}
 
 NUCLEI_RISK_MAPPING = {
@@ -204,13 +217,19 @@ class AgentNuclei(
             if self.args.get("use_default_templates", True):
                 logger.debug("Running default templates.")
                 self._run_command(targets, run_default_templates=True)
+                self._run_command(
+                    targets,
+                    templates=CORRECTED_TEMPLATES,
+                    output_path=CORRECTED_OUTPUT_PATH,
+                )
         logger.info("Done scanning targets.")
 
-    def _parse_output(self) -> None:
+    def _parse_output(self, output_path: str | None = None) -> None:
         """Parse Nuclei Json output and emit the findings as vulnerabilities"""
-        if path.exists(OUTPUT_PATH) is False:
+        output_path = output_path or OUTPUT_PATH
+        if path.exists(output_path) is False:
             return
-        with open(OUTPUT_PATH, "r", encoding="UTF-8") as f:
+        with open(output_path, "r", encoding="UTF-8") as f:
             lines = f.readlines()
             for line in lines:
                 try:
@@ -520,8 +539,10 @@ class AgentNuclei(
         targets: list[str],
         templates: list[str] | None = None,
         run_default_templates: bool = False,
+        output_path: str | None = None,
     ) -> None:
         """Run Nuclei command on the provided target using defined or default templates"""
+        output_path = output_path or OUTPUT_PATH
         chunks = [
             targets[x : x + MAX_TARGETS_COMMAND_LINE]
             for x in range(0, len(targets), MAX_TARGETS_COMMAND_LINE)
@@ -532,8 +553,12 @@ class AgentNuclei(
                 command.extend(["-proxy", self._proxy])
             for item in chunk:
                 command.extend(["-u", item])
-            command.extend(["-j", "-irr", "-silent", "-o", OUTPUT_PATH])
-            if run_default_templates is False:
+            command.extend(["-j", "-irr", "-silent", "-o", output_path])
+            if run_default_templates is True:
+                # The corrected copy runs in its own invocation, so the buggy upstream one is kept
+                # out of the default set rather than firing alongside it.
+                command.extend(["-eid", NODE2SHELL_TEMPLATE_ID])
+            else:
                 if templates is not None:
                     for template in templates:
                         if path.exists(template) is True:
@@ -543,12 +568,17 @@ class AgentNuclei(
                         command.extend(["-id", template_id])
 
             if len(self._basic_credentials) == 0:
-                self._run_nuclei_command(command)
+                self._run_nuclei_command(command, output_path)
             else:
                 for basic_credential in self._basic_credentials:
-                    self._run_nuclei_command([*command, "-H", basic_credential.header])
+                    self._run_nuclei_command(
+                        [*command, "-H", basic_credential.header], output_path
+                    )
 
-    def _run_nuclei_command(self, command: list[str]) -> None:
+    def _run_nuclei_command(
+        self, command: list[str], output_path: str | None = None
+    ) -> None:
+        output_path = output_path or OUTPUT_PATH
         try:
             subprocess.run(
                 command,
@@ -556,12 +586,12 @@ class AgentNuclei(
                 check=True,
                 timeout=NUCLEI_TIMEOUT_SECONDS,
             )
-            self._parse_output()
+            self._parse_output(output_path)
         except subprocess.CalledProcessError as e:
             logger.error("Error running nuclei %s", e)
         except subprocess.TimeoutExpired as e:
             logger.error("Error running nuclei timed out %s", e)
-            self._parse_output()
+            self._parse_output(output_path)
 
     def _should_process_target(self, scope_urls_regex: str | None, url: str) -> bool:
         if scope_urls_regex is None:

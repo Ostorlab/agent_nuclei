@@ -49,6 +49,40 @@ def testAgentNuclei_whenBinaryAvailable_RunScan(
 
 
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
+def testAgentNuclei_whenRunningDefaultTemplates_excludesBuggyNode2ShellAndRunsCorrectedCopy(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """The upstream node2shell template infers a vulnerable Brotli decoder from response
+    differences a static host also produces, so it is excluded from the default run and the
+    corrected copy is run in its own invocation, writing to its own output file."""
+    run_command_mock = mocker.patch("subprocess.run", return_value=None)
+    mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    commands = [call.args[0] for call in run_command_mock.call_args_list]
+    default_command = commands[0]
+    corrected_command = commands[1]
+    assert default_command[-2:] == ["-eid", "CVE-2026-111497"]
+    assert corrected_command == [
+        "/nuclei/nuclei",
+        "-u",
+        "209.235.136.112:443",
+        "-j",
+        "-irr",
+        "-silent",
+        "-o",
+        "/tmp/result_nuclei_corrected.json",
+        "-t",
+        agent_nuclei.CORRECTED_TEMPLATES[0],
+    ]
+
+
+@mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
 def testAgentNuclei_whenUrlTemplatesGiven_RunScan(
     requests_mock: rq_mock.mocker.Mocker,
     scan_message: message.Message,
@@ -58,6 +92,9 @@ def testAgentNuclei_whenUrlTemplatesGiven_RunScan(
     """Tests running the agent and parsing the json output."""
     run_command_mock = mocker.patch("subprocess.run", return_value=None)
     mocker.patch("os.path.exists", return_value=True)
+    mocker.patch(
+        "agent.agent_nuclei.CORRECTED_OUTPUT_PATH", "./tests/result_nuclei_empty.json"
+    )
     requests_mock.get(
         "https://raw.githubusercontent.com/Ostorlab/main/templates/CVE1.yaml",
         content=b"test1",
@@ -83,6 +120,8 @@ def testAgentNuclei_whenUrlTemplatesGiven_RunScan(
         "-silent",
         "-o",
         "./tests/result_nuclei.json",
+        "-eid",
+        "CVE-2026-111497",
     ]
     command = " ".join(run_command_args[0].args[0])
     assert "/nuclei/nuclei" in command
@@ -108,6 +147,9 @@ def testAgentNuclei_whenLinkMessageGiven_NotScan(
     """Tests running the agent and parsing the json output."""
     run_command_mock = mocker.patch("subprocess.run", return_value=None)
     mocker.patch("os.path.exists", return_value=True)
+    mocker.patch(
+        "agent.agent_nuclei.CORRECTED_OUTPUT_PATH", "./tests/result_nuclei_empty.json"
+    )
 
     nuclei_agent.process(scan_message_link_2)
 
@@ -123,6 +165,9 @@ def testAgentNuclei_whenDomainNameGiven_NotScan(
     """Tests running the agent and parsing the json output."""
     run_command_mock = mocker.patch("subprocess.run", return_value=None)
     mocker.patch("os.path.exists", return_value=True)
+    mocker.patch(
+        "agent.agent_nuclei.CORRECTED_OUTPUT_PATH", "./tests/result_nuclei_empty.json"
+    )
 
     nuclei_agent.process(scan_message_domain_2)
 
@@ -139,6 +184,9 @@ def testAgentNuclei_whenTemplatesProvided_scansAppWithTemplate(
     """Tests running the agent and parsing the json output."""
     run_command_mock = mocker.patch("subprocess.run", return_value=None)
     mocker.patch("os.path.exists", return_value=True)
+    mocker.patch(
+        "agent.agent_nuclei.CORRECTED_OUTPUT_PATH", "./tests/result_nuclei_empty.json"
+    )
     requests_mock.get(
         "https://raw.githubusercontent.com/Ostorlab/main/templates/CVE1.yaml",
         content=b"test1",
@@ -179,8 +227,14 @@ def testAgentNuclei_whenTemplatesProvided_scansAppWithTemplate(
             "-silent",
             "-o",
             "./tests/result_nuclei.json",
+            "-eid",
+            "CVE-2026-111497",
         ],
     )
+    assert run_command_args[2].args[0][-2:] == [
+        "-t",
+        agent_nuclei.CORRECTED_TEMPLATES[0],
+    ]
 
 
 @mock.patch("agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei.json")
@@ -193,6 +247,9 @@ def testAgentNuclei_whenMessageIsIpRange_scanMultipleTargets(
     """Tests running the agent and parsing the json output."""
     run_command_mock = mocker.patch("subprocess.run", return_value=None)
     mocker.patch("os.path.exists", return_value=True)
+    mocker.patch(
+        "agent.agent_nuclei.CORRECTED_OUTPUT_PATH", "./tests/result_nuclei_empty.json"
+    )
     requests_mock.get(
         "https://raw.githubusercontent.com/Ostorlab/main/templates/CVE1.yaml",
         content=b"test1",
@@ -223,6 +280,9 @@ def testAgentNuclei_whenMessageIsDomain_scanMultipleTargets(
     """Tests running the agent and parsing the json output."""
     run_command_mock = mocker.patch("subprocess.run", return_value=None)
     mocker.patch("os.path.exists", return_value=True)
+    mocker.patch(
+        "agent.agent_nuclei.CORRECTED_OUTPUT_PATH", "./tests/result_nuclei_empty.json"
+    )
     requests_mock.get(
         "https://raw.githubusercontent.com/Ostorlab/main/templates/CVE1.yaml",
         content=b"test1",
@@ -252,6 +312,9 @@ def testAgentNuclei_whenMessageIsLargeIpRange_scanMultipleTargets(
     """Tests running the agent and parsing the json output."""
     run_command_mock = mocker.patch("subprocess.run", return_value=None)
     mocker.patch("os.path.exists", return_value=True)
+    mocker.patch(
+        "agent.agent_nuclei.CORRECTED_OUTPUT_PATH", "./tests/result_nuclei_empty.json"
+    )
     requests_mock.get(
         "https://raw.githubusercontent.com/Ostorlab/main/templates/CVE1.yaml",
         content=b"test1",
@@ -528,6 +591,9 @@ def testAgentNuclei_whenProcessFailed_agentNotCrash(
         ),
     )
     mocker.patch("os.path.exists", return_value=True)
+    mocker.patch(
+        "agent.agent_nuclei.CORRECTED_OUTPUT_PATH", "./tests/result_nuclei_empty.json"
+    )
     requests_mock.get(
         "https://raw.githubusercontent.com/Ostorlab/main/templates/CVE1.yaml",
         content=b"test1",
