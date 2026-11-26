@@ -1046,6 +1046,72 @@ def testAgentNuclei_whenCookieAttributeMatchesAppSessionCookie_shouldReport(
     mock_report_vulnerability.assert_called_once()
 
 
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH",
+    "./tests/result_nuclei_self_signed_ssl_bare_ip_fp.json",
+)
+def testAgentNuclei_whenSelfSignedSslMatchesBareIpTarget_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """A bare-IP TLS handshake has no hostname to use as SNI, so a CDN/frontend presents its
+    self-signed no-SNI fallback certificate. Such a self-signed SSL finding is an artifact of IP
+    scanning, not the scanned service's real certificate, and must not be reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH",
+    "./tests/result_nuclei_self_signed_ssl_domain.json",
+)
+def testAgentNuclei_whenSelfSignedSslMatchesDomainTarget_shouldReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """A domain target uses the hostname as SNI, so a self-signed certificate there is the
+    service's real certificate and must still be reported: the self-signed SSL suppression only
+    covers bare-IP no-SNI targets."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "matched_at,expected",
+    [
+        ("74.125.29.101:443", True),
+        ("74.125.29.101", True),
+        ("https://74.125.29.101:443", True),
+        ("[2001:db8::1]:443", True),
+        ("2001:db8::1", True),
+        ("example.com:443", False),
+        ("https://example.com", False),
+        ("", False),
+    ],
+)
+def testAgentNuclei_whenClassifyingMatchedHost_shouldDetectBareIp(
+    matched_at: str,
+    expected: bool,
+) -> None:
+    """The bare-IP detection drives the self-signed SSL suppression: an IP host is a no-SNI
+    handshake, a domain host is not."""
+    assert agent_nuclei._is_bare_ip_target(matched_at) is expected
+
+
 @pytest.mark.parametrize(
     "cookie",
     [
