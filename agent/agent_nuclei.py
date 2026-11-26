@@ -76,11 +76,15 @@ NUCLEI_TIMEOUT_SECONDS = NUCLEI_TIMEOUT_MINUTES * 60
 # CVE-2026-111497 (node2shell) infers a Brotli decoder from response differences between control
 # requests, which a static host or a CDN that never reads the request body also produces.
 # CVE-2022-44727 trusts a weak lgcookieslaw fingerprint and a single slow request.
+# dns-waf-detect's cloudflare matcher fires whenever the DNS answer carries a Cloudflare
+# nameserver (`ns.cloudflare.com`), which only shows that Cloudflare is the authoritative DNS
+# host and says nothing about a web application firewall being active.
 KNOWN_FP_MATCHERS: set[tuple[str, str | None]] = {
     ("form-detection", None),
     ("CVE-2026-111497", None),
     ("CVE-2022-44727", "lglaw-v1-sqli"),
     ("CVE-2022-44727", "lglaw-v2-sqli"),
+    ("dns-waf-detect", "cloudflare"),
 }
 
 # Upstream cookie-attribute templates (missing-cookie-samesite-strict, cookies-without-secure,
