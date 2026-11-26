@@ -291,7 +291,7 @@ def _csp_directive_source_is_unsafe(source: str) -> bool:
     Returns:
         True when the source is genuinely unsafe, False otherwise.
     """
-    source = source.strip()
+    source = source.strip().lower()
     _, _, authority = source.rpartition("://")
     host = authority.partition("/")[0].partition(":")[0]
     return host == "*" or source.startswith(("'unsafe-", "data:", "blob:"))
