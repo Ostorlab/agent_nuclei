@@ -984,6 +984,27 @@ def testAgentNuclei_whenFormDetectionMatchesGenericPage_shouldNotReport(
 
 
 @mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_google_client_id_fp.json"
+)
+def testAgentNuclei_whenGoogleClientIdTemplateMatches_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """The upstream `google-client-id` template flags any Google OAuth client ID, a public
+    identifier by design (it is sent to browsers in OAuth redirects and shipped in client-side
+    code), so the finding is a false positive and must not be reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
+
+
+@mock.patch(
     "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_cookie_deletion_fp.json"
 )
 def testAgentNuclei_whenCookieAttributeMatchesDeletionDirective_shouldNotReport(

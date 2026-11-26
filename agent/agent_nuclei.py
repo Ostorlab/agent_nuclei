@@ -76,8 +76,12 @@ NUCLEI_TIMEOUT_SECONDS = NUCLEI_TIMEOUT_MINUTES * 60
 # CVE-2026-111497 (node2shell) infers a Brotli decoder from response differences between control
 # requests, which a static host or a CDN that never reads the request body also produces.
 # CVE-2022-44727 trusts a weak lgcookieslaw fingerprint and a single slow request.
+# google-client-id flags Google OAuth client IDs, which are public identifiers by design (they are
+# sent to browsers in OAuth redirects and shipped in client-side code); the credential that must
+# stay secret is the OAuth client secret, detected by a separate template.
 KNOWN_FP_MATCHERS: set[tuple[str, str | None]] = {
     ("form-detection", None),
+    ("google-client-id", None),
     ("CVE-2026-111497", None),
     ("CVE-2022-44727", "lglaw-v1-sqli"),
     ("CVE-2022-44727", "lglaw-v2-sqli"),
