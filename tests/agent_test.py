@@ -1502,16 +1502,24 @@ def testAgentNuclei_whenWeakCspFlagsOnlySubdomainWildcardInDefaultSrc_shouldNotR
     mock_report_vulnerability.assert_not_called()
 
 
-@mock.patch(
-    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_weak_csp_any_origin.json"
+@pytest.mark.parametrize(
+    "source", ["*", "https://*", "http://*", "wss://*", "https://*:*"]
 )
 def testAgentNuclei_whenWeakCspHasAnyOriginWildcard_shouldReport(
+    source: str,
+    tmp_path: pathlib.Path,
     scan_message: message.Message,
     nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
     mocker: plugin.MockerFixture,
 ) -> None:
-    """A genuine bare any-origin `*` in script-src must still be reported: the suppression only
-    covers subdomain-scoped wildcards, never a real any-origin source."""
+    """Keep findings for sources that allow any host, including scheme wildcards."""
+    fixture = pathlib.Path("tests/result_nuclei_weak_csp_any_origin.json")
+    result = fixture.read_text().replace(
+        "script-src 'self' *", f"script-src 'self' {source}"
+    )
+    output = tmp_path / "nuclei.json"
+    output.write_text(result)
+    mocker.patch("agent.agent_nuclei.OUTPUT_PATH", str(output))
     mocker.patch("subprocess.run", return_value=None)
     mock_report_vulnerability = mocker.patch(
         "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None

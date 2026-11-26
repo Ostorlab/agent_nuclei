@@ -271,8 +271,8 @@ def _csp_directive_source_is_unsafe(source: str) -> bool:
     """Tell whether one CSP source is genuinely unsafe under the weak-csp-detect matchers.
 
     The upstream matchers treat `'unsafe-inline'`/`'unsafe-eval'`/`'unsafe-hashes'`, a bare
-    any-origin `*`, `data:` and `blob:` as unsafe. A subdomain-scoped wildcard (`*.example.com`)
-    or a port wildcard (`127.0.0.1:*`) is not.
+    any-origin `*`, a scheme-wide host wildcard such as `https://*`, `data:` and `blob:`
+    as unsafe. Subdomain and port wildcards keep the host restricted.
 
     Args:
         source: One whitespace-separated CSP source.
@@ -281,14 +281,20 @@ def _csp_directive_source_is_unsafe(source: str) -> bool:
         True when the source is genuinely unsafe, False otherwise.
     """
     source = source.strip()
-    return source == "*" or source.startswith(("'unsafe-", "data:", "blob:"))
+    _, scheme_separator, authority = source.partition("://")
+    host = authority.partition("/")[0].partition(":")[0]
+    return (
+        source == "*"
+        or (scheme_separator != "" and host == "*")
+        or source.startswith(("'unsafe-", "data:", "blob:"))
+    )
 
 
 def _is_weak_csp_subdomain_wildcard_fp(nuclei_data_dict: dict[str, Any]) -> bool:
     """Tell whether a weak-csp-detect finding only flags subdomain-scoped wildcards.
 
     The `unsafe-script-src`/`unsafe-default-src` matchers report any directive that contains
-    `unsafe-inline`/`unsafe-eval`/`unsafe-hashes`, a bare any-origin `*`, `data:` or `blob:`.
+    `unsafe-inline`/`unsafe-eval`/`unsafe-hashes`, host wildcards, `data:` or `blob:`.
     A directive whose only flagged sources are subdomain-scoped wildcards (e.g. `*.arkoselabs.com`)
     carries no such unsafe keyword, so the finding is a false positive. Any genuinely unsafe source
     keeps the finding reported.
