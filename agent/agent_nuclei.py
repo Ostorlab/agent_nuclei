@@ -111,6 +111,16 @@ COOKIE_ATTRIBUTE_TEMPLATE_IDS = {
     "cookies-without-httponly",
 }
 
+# The upstream weak-csp-detect template's `unsafe-script-src` and `unsafe-default-src` matchers
+# fire on a CSP directive that contains `unsafe-inline`/`unsafe-eval`/`unsafe-hashes`, a bare
+# any-origin `*`, `data:` or `blob:`. Their regex also matches a `*` inside a subdomain-scoped
+# wildcard (e.g. `*.arkoselabs.com`), which does not let scripts load from any origin, so a policy
+# whose only flagged sources are such subdomain wildcards is reported as weak without an unsafe
+# keyword. Only those two matchers share the bug; the `missing-script-src`/`missing-object-src`
+# matchers of the same template are left alone.
+WEAK_CSP_DETECT_TEMPLATE_ID = "weak-csp-detect"
+WEAK_CSP_UNSAFE_MATCHERS = {"unsafe-script-src", "unsafe-default-src"}
+
 # Cookie names set by edge infrastructure rather than by the scanned application: Cloudflare bot
 # management, Google Cloud Load Balancer affinity and anti-abuse cookies, AWS ELB/ALB sticky
 # cookies and Akamai bot-manager cookies. A missing SameSite/Secure/HttpOnly attribute on them is
@@ -243,6 +253,80 @@ def _is_cookie_attribute_false_positive(nuclei_data_dict: dict[str, Any]) -> boo
         _is_deletion_directive(set_cookie) or _is_infrastructure_cookie(set_cookie)
         for set_cookie in set_cookies
     )
+
+
+def _extract_csp_sources(response: str, directive_name: str) -> list[str]:
+    """Collect enforced CSP sources for the directive and its subdirectives.
+
+    The upstream matcher looks for the directive name as a prefix, so the
+    script-src matcher can also fire on script-src-elem or script-src-attr.
+    """
+    sources: list[str] = []
+    for line in response.splitlines():
+        if line == "":
+            break
+        header_name, separator, header_value = line.partition(":")
+        if separator != ":" or header_name.strip().lower() != "content-security-policy":
+            continue
+        for directive in header_value.split(";"):
+            parts = directive.split()
+            if len(parts) == 0:
+                continue
+            name = parts[0].lower()
+            if name == directive_name or name.startswith(f"{directive_name}-"):
+                sources.extend(parts[1:])
+    return sources
+
+
+def _csp_directive_source_is_unsafe(source: str) -> bool:
+    """Tell whether one CSP source is genuinely unsafe under the weak-csp-detect matchers.
+
+    A wildcard host allows every hostname, even with a scheme or port
+    restriction. Subdomain wildcards and port-only wildcards keep the hostname
+    restricted.
+
+    Args:
+        source: One whitespace-separated CSP source.
+
+    Returns:
+        True when the source is genuinely unsafe, False otherwise.
+    """
+    source = source.strip().lower()
+    _, _, authority = source.rpartition("://")
+    host = authority.partition("/")[0].partition(":")[0]
+    return host == "*" or source.startswith(("'unsafe-", "data:", "blob:"))
+
+
+def _is_weak_csp_subdomain_wildcard_fp(nuclei_data_dict: dict[str, Any]) -> bool:
+    """Tell whether a weak-csp-detect finding only flags subdomain-scoped wildcards.
+
+    The `unsafe-script-src`/`unsafe-default-src` matchers report any directive that contains
+    `unsafe-inline`/`unsafe-eval`/`unsafe-hashes`, host wildcards, `data:` or `blob:`.
+    A directive whose only flagged sources are subdomain-scoped wildcards (e.g. `*.arkoselabs.com`)
+    carries no such unsafe keyword, so the finding is a false positive. Any genuinely unsafe source
+    keeps the finding reported.
+
+    Args:
+        nuclei_data_dict: A single parsed nuclei JSON event.
+
+    Returns:
+        True when the finding is a known weak-csp-detect subdomain-wildcard false positive.
+    """
+    if nuclei_data_dict.get("template-id") != WEAK_CSP_DETECT_TEMPLATE_ID:
+        return False
+    matcher_name = nuclei_data_dict.get("matcher-name")
+    if matcher_name not in WEAK_CSP_UNSAFE_MATCHERS:
+        return False
+    directive_name = (
+        "script-src" if matcher_name == "unsafe-script-src" else "default-src"
+    )
+    response = nuclei_data_dict.get("response")
+    if not isinstance(response, str) or response == "":
+        return False
+    sources = _extract_csp_sources(response, directive_name)
+    if len(sources) == 0:
+        return False
+    return not any(_csp_directive_source_is_unsafe(source) for source in sources)
 
 
 def _is_bare_ip_target(matched_at: str) -> bool:
@@ -466,6 +550,12 @@ class AgentNuclei(
                 if _is_cookie_attribute_false_positive(nuclei_data_dict) is True:
                     logger.info(
                         "Skipping cookie attribute false positive template `%s`.",
+                        nuclei_data_dict.get("template-id"),
+                    )
+                    continue
+                if _is_weak_csp_subdomain_wildcard_fp(nuclei_data_dict) is True:
+                    logger.info(
+                        "Skipping weak-csp-detect subdomain wildcard false positive template `%s`.",
                         nuclei_data_dict.get("template-id"),
                     )
                     continue

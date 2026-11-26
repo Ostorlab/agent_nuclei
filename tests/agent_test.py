@@ -1567,3 +1567,86 @@ def testAgentNuclei_whenLgcookieslawTemplateMatches_shouldNotReport(
     nuclei_agent_no_url_scope.process(scan_message)
 
     mock_report_vulnerability.assert_not_called()
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_weak_csp_subdomain_fp.json"
+)
+def testAgentNuclei_whenWeakCspFlagsOnlySubdomainWildcard_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """The upstream `weak-csp-detect` template's `unsafe-script-src` matcher treats a subdomain
+    wildcard (`*.arkoselabs.com`) as a bare any-origin `*`, but a policy whose script-src carries
+    no `'unsafe-inline'`/`'unsafe-eval'`/`data:`/`blob:`/any-origin source is not weak, so the
+    finding is a false positive and must not be reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH",
+    "./tests/result_nuclei_weak_csp_default_src_fp.json",
+)
+def testAgentNuclei_whenWeakCspFlagsOnlySubdomainWildcardInDefaultSrc_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """The `unsafe-default-src` matcher of the same template has the same subdomain-wildcard bug;
+    a default-src that only permits subdomain wildcards is not a weak policy."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "script_policy",
+    [
+        "script-src 'self' *",
+        "script-src https://*",
+        "script-src http://*",
+        "script-src wss://*",
+        "script-src https://*:*",
+        "script-src *:*",
+        "script-src *:443",
+        "script-src 'UNSAFE-INLINE'",
+        "script-src DATA:",
+        "script-src BLOB:",
+        "script-src 'self'; script-src-elem https://*",
+        "script-src 'self'; script-src-attr 'unsafe-inline'",
+    ],
+)
+def testAgentNuclei_whenWeakCspAllowsUnsafeScriptSources_shouldReport(
+    script_policy: str,
+    tmp_path: pathlib.Path,
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """Keep findings for unsafe sources in script-src and its CSP Level 3 variants."""
+    fixture = pathlib.Path("tests/result_nuclei_weak_csp_any_origin.json")
+    result = fixture.read_text().replace("script-src 'self' *", script_policy)
+    output = tmp_path / "nuclei.json"
+    output.write_text(result)
+    mocker.patch("agent.agent_nuclei.OUTPUT_PATH", str(output))
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_called_once()
