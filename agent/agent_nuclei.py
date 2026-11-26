@@ -76,12 +76,29 @@ NUCLEI_TIMEOUT_SECONDS = NUCLEI_TIMEOUT_MINUTES * 60
 # CVE-2026-111497 (node2shell) infers a Brotli decoder from response differences between control
 # requests, which a static host or a CDN that never reads the request body also produces.
 # CVE-2022-44727 trusts a weak lgcookieslaw fingerprint and a single slow request.
+# dns-waf-detect's cloudflare matcher fires whenever the DNS answer carries a Cloudflare
+# nameserver (`ns.cloudflare.com`), which only shows that Cloudflare is the authoritative DNS
+# host and says nothing about a web application firewall being active.
+# google-client-id flags Google OAuth client IDs, which are public identifiers by design (they are
+# sent to browsers in OAuth redirects and shipped in client-side code); the credential that must
+# stay secret is the OAuth client secret, detected by a separate template.
 KNOWN_FP_MATCHERS: set[tuple[str, str | None]] = {
     ("form-detection", None),
+    ("google-client-id", None),
     ("CVE-2026-111497", None),
     ("CVE-2022-44727", "lglaw-v1-sqli"),
     ("CVE-2022-44727", "lglaw-v2-sqli"),
+    ("dns-waf-detect", "cloudflare"),
 }
+
+# The upstream self-signed-ssl template reports a certificate as self-signed whenever the
+# `self_signed` handshake flag is true. On a bare-IP TLS handshake there is no hostname to use as
+# SNI, so a server presents its default fallback certificate; large CDN/frontend IPs (Google's
+# 74.125.0.0/16, etc.) answer with a self-signed certificate that is not the service's real,
+# CA-issued one. Such a finding is an artifact of IP scanning, so it is suppressed agent-side for
+# bare-IP targets only. Domain targets use the hostname as SNI and keep genuine self-signed
+# certificates reported.
+SELF_SIGNED_SSL_TEMPLATE_ID = "self-signed-ssl"
 
 # Upstream cookie-attribute templates (missing-cookie-samesite-strict, cookies-without-secure,
 # cookies-without-httponly) treat any Set-Cookie seen on a scanned host as an application session
@@ -323,6 +340,56 @@ def _is_weak_csp_subdomain_wildcard_fp(nuclei_data_dict: dict[str, Any]) -> bool
     return not any(_csp_directive_source_is_unsafe(source) for source in sources)
 
 
+def _is_bare_ip_target(matched_at: str) -> bool:
+    """Tell whether the host of a matched target is a bare IP address.
+
+    Args:
+        matched_at: The `matched-at` value of a nuclei finding, e.g. `74.125.29.101:443`,
+            `example.com:443` or `[2001:db8::1]:443`.
+
+    Returns:
+        True when the host is an IP address rather than a domain name.
+    """
+    target = matched_at.split("://", 1)[-1]
+    if target.startswith("["):
+        candidates = [target.split("]", 1)[0][1:]]
+    else:
+        # The whole target covers a bare address (e.g. `2001:db8::1`); the port-stripped part
+        # covers an IPv4 or unbracketed IPv6 address followed by a port (e.g. `74.125.29.101:443`).
+        candidates = [target, target.rsplit(":", 1)[0]]
+    for candidate in candidates:
+        try:
+            ipaddress.ip_address(candidate)
+            return True
+        except ValueError:
+            continue
+    return False
+
+
+def _is_self_signed_ssl_bare_ip_fp(nuclei_data_dict: dict[str, Any]) -> bool:
+    """Tell whether a self-signed SSL finding is a bare-IP no-SNI fallback certificate.
+
+    A bare-IP TLS handshake carries no hostname to use as SNI, so the server presents its default
+    fallback certificate. Large CDN/frontend IPs answer such a handshake with a self-signed
+    certificate, which makes the self-signed-ssl template report an artifact of IP scanning rather
+    than the scanned service's real, CA-issued certificate. Such a certificate is not a signal
+    about the scanned asset, so the finding is suppressed. Domain targets keep genuine self-signed
+    certificates reported.
+
+    Args:
+        nuclei_data_dict: A single parsed nuclei JSON event.
+
+    Returns:
+        True when the finding is a self-signed SSL false positive on a bare-IP target.
+    """
+    if nuclei_data_dict.get("template-id") != SELF_SIGNED_SSL_TEMPLATE_ID:
+        return False
+    matched_at = nuclei_data_dict.get("matched-at")
+    if not isinstance(matched_at, str) or matched_at == "":
+        return False
+    return _is_bare_ip_target(matched_at)
+
+
 @dataclasses.dataclass
 class Target:
     name: str
@@ -501,6 +568,12 @@ class AgentNuclei(
                     logger.info(
                         "Skipping weak-csp-detect subdomain wildcard false positive template `%s`.",
                         nuclei_data_dict.get("template-id"),
+                    )
+                    continue
+                if _is_self_signed_ssl_bare_ip_fp(nuclei_data_dict) is True:
+                    logger.info(
+                        "Skipping self-signed SSL false positive on bare-IP target `%s`.",
+                        nuclei_data_dict.get("matched-at"),
                     )
                     continue
                 technical_detail = ""

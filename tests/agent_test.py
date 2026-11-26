@@ -984,6 +984,50 @@ def testAgentNuclei_whenFormDetectionMatchesGenericPage_shouldNotReport(
 
 
 @mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_google_client_id_fp.json"
+)
+def testAgentNuclei_whenGoogleClientIdTemplateMatches_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """The upstream `google-client-id` template flags any Google OAuth client ID, a public
+    identifier by design (it is sent to browsers in OAuth redirects and shipped in client-side
+    code), so the finding is a false positive and must not be reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH",
+    "./tests/result_nuclei_dns_waf_cloudflare_fp.json",
+)
+def testAgentNuclei_whenDnsWafDetectMatchesCloudflareNameservers_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """The upstream `dns-waf-detect` template's `cloudflare` matcher reports a DNS WAF whenever
+    the DNS answer carries a Cloudflare nameserver (`ns.cloudflare.com`), which only indicates
+    ordinary authoritative DNS hosting, so the finding is a false positive and must not be
+    reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
+
+
+@mock.patch(
     "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_cookie_deletion_fp.json"
 )
 def testAgentNuclei_whenCookieAttributeMatchesDeletionDirective_shouldNotReport(
@@ -1044,6 +1088,72 @@ def testAgentNuclei_whenCookieAttributeMatchesAppSessionCookie_shouldReport(
     nuclei_agent_no_url_scope.process(scan_message)
 
     mock_report_vulnerability.assert_called_once()
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH",
+    "./tests/result_nuclei_self_signed_ssl_bare_ip_fp.json",
+)
+def testAgentNuclei_whenSelfSignedSslMatchesBareIpTarget_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """A bare-IP TLS handshake has no hostname to use as SNI, so a CDN/frontend presents its
+    self-signed no-SNI fallback certificate. Such a self-signed SSL finding is an artifact of IP
+    scanning, not the scanned service's real certificate, and must not be reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH",
+    "./tests/result_nuclei_self_signed_ssl_domain.json",
+)
+def testAgentNuclei_whenSelfSignedSslMatchesDomainTarget_shouldReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """A domain target uses the hostname as SNI, so a self-signed certificate there is the
+    service's real certificate and must still be reported: the self-signed SSL suppression only
+    covers bare-IP no-SNI targets."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "matched_at,expected",
+    [
+        ("74.125.29.101:443", True),
+        ("74.125.29.101", True),
+        ("https://74.125.29.101:443", True),
+        ("[2001:db8::1]:443", True),
+        ("2001:db8::1", True),
+        ("example.com:443", False),
+        ("https://example.com", False),
+        ("", False),
+    ],
+)
+def testAgentNuclei_whenClassifyingMatchedHost_shouldDetectBareIp(
+    matched_at: str,
+    expected: bool,
+) -> None:
+    """The bare-IP detection drives the self-signed SSL suppression: an IP host is a no-SNI
+    handshake, a domain host is not."""
+    assert agent_nuclei._is_bare_ip_target(matched_at) is expected
 
 
 @pytest.mark.parametrize(
