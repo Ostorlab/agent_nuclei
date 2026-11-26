@@ -1457,3 +1457,66 @@ def testAgentNuclei_whenLgcookieslawTemplateMatches_shouldNotReport(
     nuclei_agent_no_url_scope.process(scan_message)
 
     mock_report_vulnerability.assert_not_called()
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_weak_csp_subdomain_fp.json"
+)
+def testAgentNuclei_whenWeakCspFlagsOnlySubdomainWildcard_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """The upstream `weak-csp-detect` template's `unsafe-script-src` matcher treats a subdomain
+    wildcard (`*.arkoselabs.com`) as a bare any-origin `*`, but a policy whose script-src carries
+    no `'unsafe-inline'`/`'unsafe-eval'`/`data:`/`blob:`/any-origin source is not weak, so the
+    finding is a false positive and must not be reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH",
+    "./tests/result_nuclei_weak_csp_default_src_fp.json",
+)
+def testAgentNuclei_whenWeakCspFlagsOnlySubdomainWildcardInDefaultSrc_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """The `unsafe-default-src` matcher of the same template has the same subdomain-wildcard bug;
+    a default-src that only permits subdomain wildcards is not a weak policy."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_weak_csp_any_origin.json"
+)
+def testAgentNuclei_whenWeakCspHasAnyOriginWildcard_shouldReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """A genuine bare any-origin `*` in script-src must still be reported: the suppression only
+    covers subdomain-scoped wildcards, never a real any-origin source."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_called_once()
