@@ -1613,20 +1613,27 @@ def testAgentNuclei_whenWeakCspFlagsOnlySubdomainWildcardInDefaultSrc_shouldNotR
 
 
 @pytest.mark.parametrize(
-    "source", ["*", "https://*", "http://*", "wss://*", "https://*:*"]
+    "script_policy",
+    [
+        "script-src 'self' *",
+        "script-src https://*",
+        "script-src http://*",
+        "script-src wss://*",
+        "script-src https://*:*",
+        "script-src 'self'; script-src-elem https://*",
+        "script-src 'self'; script-src-attr 'unsafe-inline'",
+    ],
 )
-def testAgentNuclei_whenWeakCspHasAnyOriginWildcard_shouldReport(
-    source: str,
+def testAgentNuclei_whenWeakCspAllowsUnsafeScriptSources_shouldReport(
+    script_policy: str,
     tmp_path: pathlib.Path,
     scan_message: message.Message,
     nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
     mocker: plugin.MockerFixture,
 ) -> None:
-    """Keep findings for sources that allow any host, including scheme wildcards."""
+    """Keep findings for unsafe sources in script-src and its CSP Level 3 variants."""
     fixture = pathlib.Path("tests/result_nuclei_weak_csp_any_origin.json")
-    result = fixture.read_text().replace(
-        "script-src 'self' *", f"script-src 'self' {source}"
-    )
+    result = fixture.read_text().replace("script-src 'self' *", script_policy)
     output = tmp_path / "nuclei.json"
     output.write_text(result)
     mocker.patch("agent.agent_nuclei.OUTPUT_PATH", str(output))

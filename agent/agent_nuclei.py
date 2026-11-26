@@ -255,19 +255,13 @@ def _is_cookie_attribute_false_positive(nuclei_data_dict: dict[str, Any]) -> boo
     )
 
 
-def _extract_csp_directive(response: str, directive_name: str) -> str | None:
-    """Extract one Content-Security-Policy directive's source list from a raw HTTP response.
+def _extract_csp_sources(response: str, directive_name: str) -> list[str]:
+    """Collect enforced CSP sources for the directive and its subdirectives.
 
-    Args:
-        response: The raw HTTP response captured by nuclei.
-        directive_name: The directive whose sources are wanted, e.g. `script-src`.
-
-    Returns:
-        The directive's source list (sources separated by spaces), or None when the response has
-        no `Content-Security-Policy` header or no such directive. The `Content-Security-Policy-
-        Report-Only` header is intentionally not matched, so a policy that is only report-only is
-        conservatively kept.
+    The upstream matcher looks for the directive name as a prefix, so the
+    script-src matcher can also fire on script-src-elem or script-src-attr.
     """
+    sources: list[str] = []
     for line in response.splitlines():
         if line == "":
             break
@@ -275,13 +269,13 @@ def _extract_csp_directive(response: str, directive_name: str) -> str | None:
         if separator != ":" or header_name.strip().lower() != "content-security-policy":
             continue
         for directive in header_value.split(";"):
-            parts = directive.split(None, 1)
+            parts = directive.split()
             if len(parts) == 0:
                 continue
-            if parts[0].strip().lower() == directive_name:
-                return parts[1].strip() if len(parts) > 1 else ""
-        return None
-    return None
+            name = parts[0].lower()
+            if name == directive_name or name.startswith(f"{directive_name}-"):
+                sources.extend(parts[1:])
+    return sources
 
 
 def _csp_directive_source_is_unsafe(source: str) -> bool:
@@ -333,10 +327,9 @@ def _is_weak_csp_subdomain_wildcard_fp(nuclei_data_dict: dict[str, Any]) -> bool
     response = nuclei_data_dict.get("response")
     if not isinstance(response, str) or response == "":
         return False
-    directive = _extract_csp_directive(response, directive_name)
-    if directive is None or directive == "":
+    sources = _extract_csp_sources(response, directive_name)
+    if len(sources) == 0:
         return False
-    sources = directive.split()
     return not any(_csp_directive_source_is_unsafe(source) for source in sources)
 
 
