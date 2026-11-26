@@ -281,9 +281,9 @@ def _extract_csp_sources(response: str, directive_name: str) -> list[str]:
 def _csp_directive_source_is_unsafe(source: str) -> bool:
     """Tell whether one CSP source is genuinely unsafe under the weak-csp-detect matchers.
 
-    The upstream matchers treat `'unsafe-inline'`/`'unsafe-eval'`/`'unsafe-hashes'`, a bare
-    any-origin `*`, a scheme-wide host wildcard such as `https://*`, `data:` and `blob:`
-    as unsafe. Subdomain and port wildcards keep the host restricted.
+    A wildcard host allows every hostname, even with a scheme or port
+    restriction. Subdomain wildcards and port-only wildcards keep the hostname
+    restricted.
 
     Args:
         source: One whitespace-separated CSP source.
@@ -292,13 +292,9 @@ def _csp_directive_source_is_unsafe(source: str) -> bool:
         True when the source is genuinely unsafe, False otherwise.
     """
     source = source.strip()
-    _, scheme_separator, authority = source.partition("://")
+    _, _, authority = source.rpartition("://")
     host = authority.partition("/")[0].partition(":")[0]
-    return (
-        source == "*"
-        or (scheme_separator != "" and host == "*")
-        or source.startswith(("'unsafe-", "data:", "blob:"))
-    )
+    return host == "*" or source.startswith(("'unsafe-", "data:", "blob:"))
 
 
 def _is_weak_csp_subdomain_wildcard_fp(nuclei_data_dict: dict[str, Any]) -> bool:

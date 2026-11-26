@@ -1620,6 +1620,8 @@ def testAgentNuclei_whenWeakCspFlagsOnlySubdomainWildcardInDefaultSrc_shouldNotR
         "script-src http://*",
         "script-src wss://*",
         "script-src https://*:*",
+        "script-src *:*",
+        "script-src *:443",
         "script-src 'self'; script-src-elem https://*",
         "script-src 'self'; script-src-attr 'unsafe-inline'",
     ],
