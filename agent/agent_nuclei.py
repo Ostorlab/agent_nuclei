@@ -143,6 +143,15 @@ INFRASTRUCTURE_COOKIE_NAMES = {
     "_abck",
 }
 
+# Cookie names set by third-party advertising/analytics networks rather than by the scanned
+# application. TapAd (The Trade Desk) sets `TapAd_TS`/`TapAd_DID` as advertising identifiers on the
+# ad-exchange host the app contacts. They are not application session cookies, so a missing
+# SameSite/Secure/HttpOnly attribute on them is not a weakness of the scanned application.
+ADVERTISING_COOKIE_NAMES = {
+    "tapad_ts",
+    "tapad_did",
+}
+
 
 def _is_known_false_positive(nuclei_data_dict: dict[str, Any]) -> bool:
     """Tell whether a nuclei result matches a known false-positive template.
@@ -225,15 +234,29 @@ def _is_infrastructure_cookie(set_cookie: str) -> bool:
     return name in INFRASTRUCTURE_COOKIE_NAMES
 
 
+def _is_advertising_cookie(set_cookie: str) -> bool:
+    """Tell whether a Set-Cookie value is a third-party advertising identifier.
+
+    Args:
+        set_cookie: One `Set-Cookie` header value.
+
+    Returns:
+        True when the cookie name is a known advertising/analytics-network cookie.
+    """
+    name = set_cookie.split("=", 1)[0].strip().lower()
+    return name in ADVERTISING_COOKIE_NAMES
+
+
 def _is_cookie_attribute_false_positive(nuclei_data_dict: dict[str, Any]) -> bool:
-    """Tell whether a cookie-attribute finding only concerns infrastructure or
-    expired cookies rather than application session cookies.
+    """Tell whether a cookie-attribute finding only concerns infrastructure,
+    advertising or expired cookies rather than application session cookies.
 
     The upstream cookie-attribute templates fire on any Set-Cookie lacking the attribute, so a
-    response that only sets infrastructure cookies or expired cookie-deletion directives is
-    reported as an application cookie gap. Such a finding is a false positive and is suppressed
-    only when every Set-Cookie of the response is a deletion directive or an infrastructure
-    cookie; any application cookie keeps the finding reported.
+    response that only sets infrastructure cookies, advertising-identifier cookies or expired
+    cookie-deletion directives is reported as an application cookie gap. Such a finding is a false
+    positive and is suppressed only when every Set-Cookie of the response is a deletion directive,
+    an infrastructure cookie or an advertising cookie; any application cookie keeps the finding
+    reported.
 
     Args:
         nuclei_data_dict: A single parsed nuclei JSON event.
@@ -250,7 +273,9 @@ def _is_cookie_attribute_false_positive(nuclei_data_dict: dict[str, Any]) -> boo
     if len(set_cookies) == 0:
         return False
     return all(
-        _is_deletion_directive(set_cookie) or _is_infrastructure_cookie(set_cookie)
+        _is_deletion_directive(set_cookie)
+        or _is_infrastructure_cookie(set_cookie)
+        or _is_advertising_cookie(set_cookie)
         for set_cookie in set_cookies
     )
 

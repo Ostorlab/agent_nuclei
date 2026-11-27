@@ -1071,6 +1071,28 @@ def testAgentNuclei_whenCookieAttributeMatchesInfrastructureCookie_shouldNotRepo
 
 
 @mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH",
+    "./tests/result_nuclei_cookie_advertising_fp.json",
+)
+def testAgentNuclei_whenCookieAttributeMatchesAdvertisingCookie_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """The upstream `cookies-without-httponly` template flags TapAd advertising-identifier cookies
+    (`TapAd_TS`/`TapAd_DID`) set by a third-party ad-exchange host as application session cookies,
+    so the finding is a false positive and must not be reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
+
+
+@mock.patch(
     "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_cookie_app_session.json"
 )
 def testAgentNuclei_whenCookieAttributeMatchesAppSessionCookie_shouldReport(
