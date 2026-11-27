@@ -1006,6 +1006,28 @@ def testAgentNuclei_whenGoogleClientIdTemplateMatches_shouldNotReport(
 
 @mock.patch(
     "agent.agent_nuclei.OUTPUT_PATH",
+    "./tests/result_nuclei_azure_domain_tenant_fp.json",
+)
+def testAgentNuclei_whenAzureDomainTenantTemplateMatches_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """The upstream `azure-domain-tenant` template flags any Microsoft Entra ID (Azure AD) tenant
+    ID, a public GUID embedded in the OIDC discovery document and every OAuth endpoint URL, so the
+    finding is a false positive and must not be reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH",
     "./tests/result_nuclei_dns_waf_cloudflare_fp.json",
 )
 def testAgentNuclei_whenDnsWafDetectMatchesCloudflareNameservers_shouldNotReport(

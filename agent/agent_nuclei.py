@@ -82,9 +82,14 @@ NUCLEI_TIMEOUT_SECONDS = NUCLEI_TIMEOUT_MINUTES * 60
 # google-client-id flags Google OAuth client IDs, which are public identifiers by design (they are
 # sent to browsers in OAuth redirects and shipped in client-side code); the credential that must
 # stay secret is the OAuth client secret, detected by a separate template.
+# azure-domain-tenant flags the Microsoft Entra ID (Azure AD) tenant ID, a public GUID that is
+# embedded in every public OIDC discovery document and OAuth endpoint URL (token_endpoint, jwks_uri,
+# issuer, ...); the secrets that must stay protected (client secrets, signing keys) are detected by
+# separate templates, so the tenant ID exposure is a false positive.
 KNOWN_FP_MATCHERS: set[tuple[str, str | None]] = {
     ("form-detection", None),
     ("google-client-id", None),
+    ("azure-domain-tenant", None),
     ("CVE-2026-111497", None),
     ("CVE-2022-44727", "lglaw-v1-sqli"),
     ("CVE-2022-44727", "lglaw-v2-sqli"),
