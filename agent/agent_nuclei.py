@@ -82,6 +82,10 @@ NUCLEI_TIMEOUT_SECONDS = NUCLEI_TIMEOUT_MINUTES * 60
 # google-client-id flags Google OAuth client IDs, which are public identifiers by design (they are
 # sent to browsers in OAuth redirects and shipped in client-side code); the credential that must
 # stay secret is the OAuth client secret, detected by a separate template.
+# unauthenticated-popup-upload does a single GET of an upload popup page and equates a 200 response
+# with the page's presence to an unauthenticated file-upload capability, without ever performing an
+# upload or checking authentication; a popup page existing (here an OutSystems RichWidgets
+# component) says nothing about whether files can be uploaded without a session.
 # addeventlistener-detect is a presence heuristic: its regex matches any `addEventListener(...)`
 # call in a JS body. addEventListener is used by essentially all JavaScript, so the template fires
 # on benign third-party library code (e.g. Arkose Labs api.js) with no DOM sink, tainted source or
@@ -89,6 +93,7 @@ NUCLEI_TIMEOUT_SECONDS = NUCLEI_TIMEOUT_MINUTES * 60
 KNOWN_FP_MATCHERS: set[tuple[str, str | None]] = {
     ("form-detection", None),
     ("google-client-id", None),
+    ("unauthenticated-popup-upload", None),
     ("addeventlistener-detect", None),
     ("CVE-2026-111497", None),
     ("CVE-2022-44727", "lglaw-v1-sqli"),
