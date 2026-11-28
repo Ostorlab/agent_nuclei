@@ -1029,6 +1029,30 @@ def testAgentNuclei_whenGoogleClientIdTemplateMatches_shouldNotReport(
 
 @mock.patch(
     "agent.agent_nuclei.OUTPUT_PATH",
+    "./tests/result_nuclei_unauthenticated_popup_upload_fp.json",
+)
+def testAgentNuclei_whenUnauthenticatedPopupUploadTemplateMatches_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """The upstream `unauthenticated-popup-upload` template reports a 200 response from an upload
+    popup page as an unauthenticated upload capability, without ever performing an upload or
+    checking authentication. The presence of such a page (here an OutSystems RichWidgets popup)
+    does not establish that files can be uploaded without a session, so the finding is a false
+    positive and must not be reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH",
     "./tests/result_nuclei_dns_waf_cloudflare_fp.json",
 )
 def testAgentNuclei_whenDnsWafDetectMatchesCloudflareNameservers_shouldNotReport(
