@@ -82,9 +82,14 @@ NUCLEI_TIMEOUT_SECONDS = NUCLEI_TIMEOUT_MINUTES * 60
 # google-client-id flags Google OAuth client IDs, which are public identifiers by design (they are
 # sent to browsers in OAuth redirects and shipped in client-side code); the credential that must
 # stay secret is the OAuth client secret, detected by a separate template.
+# addeventlistener-detect is a presence heuristic: its regex matches any `addEventListener(...)`
+# call in a JS body. addEventListener is used by essentially all JavaScript, so the template fires
+# on benign third-party library code (e.g. Arkose Labs api.js) with no DOM sink, tainted source or
+# attacker-controlled message handler, i.e. no actual DOM-based XSS data flow.
 KNOWN_FP_MATCHERS: set[tuple[str, str | None]] = {
     ("form-detection", None),
     ("google-client-id", None),
+    ("addeventlistener-detect", None),
     ("CVE-2026-111497", None),
     ("CVE-2022-44727", "lglaw-v1-sqli"),
     ("CVE-2022-44727", "lglaw-v2-sqli"),
@@ -110,6 +115,13 @@ COOKIE_ATTRIBUTE_TEMPLATE_IDS = {
     "cookies-without-secure",
     "cookies-without-httponly",
 }
+
+# The upstream s3-detect template fires on the generic AWS error-code regex
+# `InvalidURI|InvalidArgument|NoSuchBucket` OR on S3-specific headers. Those error codes are also
+# returned by other AWS services (CloudFront returns InvalidURI for a malformed path like `/%c0`),
+# so a response that matches only the error-code regex and carries no S3 header marker is not an
+# S3 bucket and is reported as one. Such a finding is a false positive and is suppressed.
+S3_DETECT_TEMPLATE_ID = "s3-detect"
 
 # The upstream weak-csp-detect template's `unsafe-script-src` and `unsafe-default-src` matchers
 # fire on a CSP directive that contains `unsafe-inline`/`unsafe-eval`/`unsafe-hashes`, a bare
@@ -437,6 +449,38 @@ def _is_self_signed_ssl_bare_ip_fp(nuclei_data_dict: dict[str, Any]) -> bool:
     return _is_bare_ip_target(matched_at)
 
 
+def _is_s3_detect_false_positive(nuclei_data_dict: dict[str, Any]) -> bool:
+    """Tell whether an s3-detect finding matched a non-S3 AWS error page.
+
+    The upstream s3-detect template's body regex matches `InvalidURI`, `InvalidArgument` and
+    `NoSuchBucket`, generic AWS error codes that other services (e.g. CloudFront) also return. A
+    response that only matches that regex and carries none of the S3 header markers
+    (`Server: AmazonS3`, `x-amz-request-id`, `x-amz-id-2`) is not an S3 bucket, so the
+    "Detect Amazon-S3 Bucket" finding is a false positive and is suppressed. A response with any
+    S3 marker keeps the finding reported.
+
+    Args:
+        nuclei_data_dict: A single parsed nuclei JSON event.
+
+    Returns:
+        True when the finding is an s3-detect false positive on a non-S3 error page.
+    """
+    if nuclei_data_dict.get("template-id") != S3_DETECT_TEMPLATE_ID:
+        return False
+    response = nuclei_data_dict.get("response")
+    if not isinstance(response, str) or response == "":
+        return False
+    header_block = response.split("\r\n\r\n", 1)[0].lower()
+    # Mirror the template's own S3-confirming dsl matcher: an S3 response always carries one of
+    # these markers. `x-amz-cf-id` (CloudFront) does not contain `x-amz-id`, so it is not matched.
+    has_s3_marker = (
+        "amazons3" in header_block
+        or "x-amz-request-id" in header_block
+        or "x-amz-id-2" in header_block
+    )
+    return not has_s3_marker
+
+
 @dataclasses.dataclass
 class Target:
     name: str
@@ -626,6 +670,12 @@ class AgentNuclei(
                 if _is_missing_sri_aws_waf_interstitial_fp(nuclei_data_dict) is True:
                     logger.info(
                         "Skipping missing-sri false positive on AWS WAF interstitial `%s`.",
+                        nuclei_data_dict.get("matched-at"),
+                    )
+                    continue
+                if _is_s3_detect_false_positive(nuclei_data_dict) is True:
+                    logger.info(
+                        "Skipping s3-detect false positive on non-S3 error page `%s`.",
                         nuclei_data_dict.get("matched-at"),
                     )
                     continue

@@ -984,6 +984,29 @@ def testAgentNuclei_whenFormDetectionMatchesGenericPage_shouldNotReport(
 
 
 @mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH",
+    "./tests/result_nuclei_addeventlistener_fp.json",
+)
+def testAgentNuclei_whenAddeventlistenerDetectMatchesGenericJs_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """The upstream `addeventlistener-detect` template reports any JavaScript whose body contains an
+    `addEventListener(...)` call, a construct used by essentially all JS, with no DOM sink, tainted
+    source or attacker-controlled message handler, so the finding is a known false positive and must
+    not be reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
+
+
+@mock.patch(
     "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_google_client_id_fp.json"
 )
 def testAgentNuclei_whenGoogleClientIdTemplateMatches_shouldNotReport(
@@ -1642,6 +1665,50 @@ def testAgentNuclei_whenWeakCspAllowsUnsafeScriptSources_shouldReport(
     output = tmp_path / "nuclei.json"
     output.write_text(result)
     mocker.patch("agent.agent_nuclei.OUTPUT_PATH", str(output))
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_called_once()
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH",
+    "./tests/result_nuclei_s3_detect_cloudfront_fp.json",
+)
+def testAgentNuclei_whenS3DetectMatchesCloudFrontError_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """The `s3-detect` template's body regex matches generic AWS error codes that CloudFront also
+    returns: a CloudFront `InvalidURI` 400 page (Server: CloudFront, no S3 header markers) is not
+    an S3 bucket, so the finding must not be reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH",
+    "./tests/result_nuclei_s3_detect_real.json",
+)
+def testAgentNuclei_whenS3DetectMatchesRealS3Response_shouldReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """A response that carries the S3 header markers (Server: AmazonS3, x-amz-request-id,
+    x-amz-id-2) is a real S3 bucket response and must still be reported: the s3-detect
+    suppression only covers non-S3 error pages."""
     mocker.patch("subprocess.run", return_value=None)
     mock_report_vulnerability = mocker.patch(
         "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
