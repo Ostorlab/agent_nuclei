@@ -121,6 +121,19 @@ COOKIE_ATTRIBUTE_TEMPLATE_IDS = {
 WEAK_CSP_DETECT_TEMPLATE_ID = "weak-csp-detect"
 WEAK_CSP_UNSAFE_MATCHERS = {"unsafe-script-src", "unsafe-default-src"}
 
+# The upstream missing-sri template reports any HTML response that loads an external script or
+# stylesheet without a Subresource Integrity (SRI) attribute. When a scanned host sits behind AWS
+# WAF, the WAF answers the probe with its own CAPTCHA/challenge interstitial instead of the
+# application's page: the response carries the `X-Amzn-Waf-Action` header (e.g. `captcha`) and
+# loads AWS-owned anti-bot scripts (`challenge.js`/`captcha.js` from `*.awswaf.com`). Those scripts
+# are not the application's assets and the application page was never served, so a missing-SRI
+# finding on such a response is a false positive and is suppressed. The template does also match a
+# genuine application page missing SRI, so the suppression is scoped to responses that carry the
+# AWS WAF action header with an interstitial value.
+MISSING_SRI_TEMPLATE_ID = "missing-sri"
+AWS_WAF_ACTION_HEADER = "x-amzn-waf-action"
+AWS_WAF_INTERSTITIAL_ACTIONS = {"captcha", "challenge"}
+
 # Cookie names set by edge infrastructure rather than by the scanned application: Cloudflare bot
 # management, Google Cloud Load Balancer affinity and anti-abuse cookies, AWS ELB/ALB sticky
 # cookies and Akamai bot-manager cookies. A missing SameSite/Secure/HttpOnly attribute on them is
@@ -327,6 +340,51 @@ def _is_weak_csp_subdomain_wildcard_fp(nuclei_data_dict: dict[str, Any]) -> bool
     if len(sources) == 0:
         return False
     return not any(_csp_directive_source_is_unsafe(source) for source in sources)
+
+
+def _extract_header_value(response: str, header_name: str) -> str | None:
+    """Return the value of a named header of a raw HTTP response.
+
+    Args:
+        response: The raw HTTP response captured by nuclei.
+        header_name: The case-insensitive name of the header to look up.
+
+    Returns:
+        The header's value, or None when the response carries no such header.
+    """
+    for line in response.splitlines():
+        if line == "":
+            break
+        name, separator, value = line.partition(":")
+        if separator != ":" or name.strip().lower() != header_name:
+            continue
+        return value.strip()
+    return None
+
+
+def _is_missing_sri_aws_waf_interstitial_fp(nuclei_data_dict: dict[str, Any]) -> bool:
+    """Tell whether a missing-SRI finding fired on an AWS WAF CAPTCHA/challenge interstitial.
+
+    The upstream `missing-sri` template reports any HTML response that loads an external script or
+    stylesheet without SRI. When the scanned host sits behind AWS WAF, the WAF serves its own
+    challenge page (marked by the `X-Amzn-Waf-Action` header) in place of the application page, and
+    the flagged scripts are AWS-owned anti-bot scripts rather than the application's assets. Such a
+    finding is a false positive and is suppressed only when the response carries the AWS WAF action
+    header with an interstitial value; a genuine application page missing SRI keeps its finding.
+
+    Args:
+        nuclei_data_dict: A single parsed nuclei JSON event.
+
+    Returns:
+        True when the finding is an AWS WAF interstitial missing-SRI false positive.
+    """
+    if nuclei_data_dict.get("template-id") != MISSING_SRI_TEMPLATE_ID:
+        return False
+    response = nuclei_data_dict.get("response")
+    if not isinstance(response, str) or response == "":
+        return False
+    action = _extract_header_value(response, AWS_WAF_ACTION_HEADER)
+    return action is not None and action.lower() in AWS_WAF_INTERSTITIAL_ACTIONS
 
 
 def _is_bare_ip_target(matched_at: str) -> bool:
@@ -562,6 +620,12 @@ class AgentNuclei(
                 if _is_self_signed_ssl_bare_ip_fp(nuclei_data_dict) is True:
                     logger.info(
                         "Skipping self-signed SSL false positive on bare-IP target `%s`.",
+                        nuclei_data_dict.get("matched-at"),
+                    )
+                    continue
+                if _is_missing_sri_aws_waf_interstitial_fp(nuclei_data_dict) is True:
+                    logger.info(
+                        "Skipping missing-sri false positive on AWS WAF interstitial `%s`.",
                         nuclei_data_dict.get("matched-at"),
                     )
                     continue
