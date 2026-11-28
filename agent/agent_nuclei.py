@@ -82,9 +82,14 @@ NUCLEI_TIMEOUT_SECONDS = NUCLEI_TIMEOUT_MINUTES * 60
 # google-client-id flags Google OAuth client IDs, which are public identifiers by design (they are
 # sent to browsers in OAuth redirects and shipped in client-side code); the credential that must
 # stay secret is the OAuth client secret, detected by a separate template.
+# addeventlistener-detect is a presence heuristic: its regex matches any `addEventListener(...)`
+# call in a JS body. addEventListener is used by essentially all JavaScript, so the template fires
+# on benign third-party library code (e.g. Arkose Labs api.js) with no DOM sink, tainted source or
+# attacker-controlled message handler, i.e. no actual DOM-based XSS data flow.
 KNOWN_FP_MATCHERS: set[tuple[str, str | None]] = {
     ("form-detection", None),
     ("google-client-id", None),
+    ("addeventlistener-detect", None),
     ("CVE-2026-111497", None),
     ("CVE-2022-44727", "lglaw-v1-sqli"),
     ("CVE-2022-44727", "lglaw-v2-sqli"),
