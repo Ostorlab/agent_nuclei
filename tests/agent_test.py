@@ -1741,3 +1741,49 @@ def testAgentNuclei_whenS3DetectMatchesRealS3Response_shouldReport(
     nuclei_agent_no_url_scope.process(scan_message)
 
     mock_report_vulnerability.assert_called_once()
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_missing_sri_waf_fp.json"
+)
+def testAgentNuclei_whenMissingSriMatchesAwsWafInterstitial_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """The upstream `missing-sri` template reports any HTML page that loads an external script
+    without SRI. When AWS WAF serves its CAPTCHA/challenge interstitial instead of the
+    application's page (marked by the `X-Amzn-Waf-Action` header), the flagged scripts are
+    AWS-owned anti-bot scripts, so the finding is a false positive and must not be reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
+
+
+@mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_missing_sri_app.json"
+)
+def testAgentNuclei_whenMissingSriMatchesApplicationPage_shouldReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """A genuine application page that loads an external script without SRI must still be reported:
+    the missing-sri suppression only covers AWS WAF challenge/captcha interstitials."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_called_once()
+    assert (
+        "Missing Subresource Integrity"
+        in mock_report_vulnerability.call_args.kwargs["entry"].title
+    )
