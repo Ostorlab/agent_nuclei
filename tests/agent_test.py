@@ -984,6 +984,29 @@ def testAgentNuclei_whenFormDetectionMatchesGenericPage_shouldNotReport(
 
 
 @mock.patch(
+    "agent.agent_nuclei.OUTPUT_PATH",
+    "./tests/result_nuclei_addeventlistener_fp.json",
+)
+def testAgentNuclei_whenAddeventlistenerDetectMatchesGenericJs_shouldNotReport(
+    scan_message: message.Message,
+    nuclei_agent_no_url_scope: agent_nuclei.AgentNuclei,
+    mocker: plugin.MockerFixture,
+) -> None:
+    """The upstream `addeventlistener-detect` template reports any JavaScript whose body contains an
+    `addEventListener(...)` call, a construct used by essentially all JS, with no DOM sink, tainted
+    source or attacker-controlled message handler, so the finding is a known false positive and must
+    not be reported."""
+    mocker.patch("subprocess.run", return_value=None)
+    mock_report_vulnerability = mocker.patch(
+        "agent.agent_nuclei.AgentNuclei.report_vulnerability", return_value=None
+    )
+
+    nuclei_agent_no_url_scope.process(scan_message)
+
+    mock_report_vulnerability.assert_not_called()
+
+
+@mock.patch(
     "agent.agent_nuclei.OUTPUT_PATH", "./tests/result_nuclei_google_client_id_fp.json"
 )
 def testAgentNuclei_whenGoogleClientIdTemplateMatches_shouldNotReport(
